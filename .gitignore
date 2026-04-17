@@ -1,0 +1,23 @@
+# Ignore bundler config
+/.bundle
+
+# Ignore log files
+/log/*
+!/log/.keep
+
+# Ignore temp files
+/tmp/*
+!/tmp/.keep
+
+# Ignore storage files
+/storage/*
+!/storage/.keep
+
+# Ignore sqlite dbs
+/db/*.sqlite3
+
+# Ignore environment files
+.env
+
+# Ignore Rails master key
+/config/master.key
