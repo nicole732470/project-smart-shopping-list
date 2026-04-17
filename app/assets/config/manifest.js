@@ -2,3 +2,4 @@
 //= link_directory ../stylesheets .css
 //= link_tree ../../javascript .js
 //= link bootstrap.js
+//= link @popperjs--core.js
