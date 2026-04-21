@@ -1,4 +1,7 @@
 Rails.application.routes.draw do
+  resource :session
+  resource :registration, only: [:new, :create]
+  resources :passwords, param: :token
   root 'products#index'
   resources :products do
     resources :price_records, only: [:new, :create]

@@ -1,23 +1,60 @@
 require "test_helper"
 
 class ProductsControllerTest < ActionDispatch::IntegrationTest
-  test "should get index" do
-    get products_index_url
-    assert_response :success
+  setup do
+    @user = users(:one)
+    @product = products(:one)
+    sign_in_as @user
   end
 
-  test "should get show" do
-    get products_show_url
+  test "should get index" do
+    get products_url
     assert_response :success
   end
 
   test "should get new" do
-    get products_new_url
+    get new_product_url
+    assert_response :success
+  end
+
+  test "should create product" do
+    assert_difference("Product.count") do
+      post products_url, params: { product: { name: "Test", category: "Cat", description: "desc" } }
+    end
+    assert_redirected_to product_url(Product.last)
+  end
+
+  test "should show product" do
+    get product_url(@product)
     assert_response :success
   end
 
   test "should get edit" do
-    get products_edit_url
+    get edit_product_url(@product)
     assert_response :success
+  end
+
+  test "should update product" do
+    patch product_url(@product), params: { product: { name: "Updated" } }
+    assert_redirected_to product_url(@product)
+  end
+
+  test "should destroy product" do
+    assert_difference("Product.count", -1) do
+      delete product_url(@product)
+    end
+    assert_redirected_to products_url
+  end
+
+  test "should not show another user's product" do
+    other = products(:two)
+    get product_url(other)
+    assert_response :not_found
+  end
+
+  test "should redirect unauthenticated user to sign in" do
+    sign_out
+    get products_url
+    assert_redirected_to new_session_url
   end
 end

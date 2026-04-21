@@ -2,7 +2,8 @@ require "test_helper"
 
 class ProductTest < ActiveSupport::TestCase
   def setup
-    @product = Product.new(name: "Test Product", category: "Electronics")
+    @user = users(:one)
+    @product = @user.products.build(name: "Test Product", category: "Electronics")
   end
 
   test "valid product" do

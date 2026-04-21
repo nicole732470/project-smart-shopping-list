@@ -2,7 +2,7 @@ class ProductsController < ApplicationController
   before_action :set_product, only: [:show, :edit, :update, :destroy]
 
   def index
-    @products = Product.all.includes(:price_records)
+    @products = Current.user.products.includes(:price_records)
     if params[:search].present?
       @products = @products.where("name LIKE ? OR category LIKE ?", "%#{params[:search]}%", "%#{params[:search]}%")
     end
@@ -13,11 +13,11 @@ class ProductsController < ApplicationController
   end
 
   def new
-    @product = Product.new
+    @product = Current.user.products.build
   end
 
   def create
-    @product = Product.new(product_params)
+    @product = Current.user.products.build(product_params)
     if @product.save
       redirect_to @product, notice: 'Product added successfully!'
     else
@@ -43,7 +43,7 @@ class ProductsController < ApplicationController
   private
 
   def set_product
-    @product = Product.find(params[:id])
+    @product = Current.user.products.find(params[:id])
   end
 
   def product_params

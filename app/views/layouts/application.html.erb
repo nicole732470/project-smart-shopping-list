@@ -16,8 +16,15 @@
           <%= link_to "Products", products_path, class: "nav-link #{controller_name == 'products' ? 'active' : ''}" %>
           <%= link_to "Price Records", price_records_path, class: "nav-link #{controller_name == 'price_records' ? 'active' : ''}" %>
         </div>
-        <div class="d-flex gap-2">
-          <%= link_to "+ Add Product", new_product_path, class: "btn btn-outline-light btn-sm" %>
+        <div class="d-flex gap-2 align-items-center">
+          <% if authenticated? %>
+            <%= link_to "+ Add Product", new_product_path, class: "btn btn-outline-light btn-sm" %>
+            <span class="text-white-50 small"><%= Current.user.email_address %></span>
+            <%= button_to "Sign out", session_path, method: :delete, class: "btn btn-outline-light btn-sm", form: { class: "d-inline" } %>
+          <% else %>
+            <%= link_to "Sign in", new_session_path, class: "btn btn-outline-light btn-sm" %>
+            <%= link_to "Sign up", new_registration_path, class: "btn btn-light btn-sm" %>
+          <% end %>
         </div>
       </div>
     </nav>

@@ -1,6 +1,15 @@
 puts "Clearing existing data..."
 PriceRecord.destroy_all
 Product.destroy_all
+User.destroy_all
+
+puts "Creating demo user..."
+demo_user = User.create!(
+  email_address: "demo@example.com",
+  password: "password",
+  password_confirmation: "password"
+)
+puts "  demo login: demo@example.com / password"
 
 puts "Creating products..."
 products_data = [
@@ -26,7 +35,7 @@ products_data = [
   { name: "Adidas Ultraboost 22", category: "Clothing & Shoes", description: "Men's running shoes with responsive Boost midsole and Primeknit+ upper" }
 ]
 
-products = products_data.map { |p| Product.create!(p) }
+products = products_data.map { |p| demo_user.products.create!(p) }
 
 puts "Creating price records..."
 store_urls = {

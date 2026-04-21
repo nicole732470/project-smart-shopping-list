@@ -1,6 +1,7 @@
 class Product < ApplicationRecord
+    belongs_to :user
     has_many :price_records, dependent: :destroy
-  
+
     validates :name, presence: true
     validates :category, presence: true
   

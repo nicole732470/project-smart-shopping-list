@@ -2,18 +2,18 @@ class PriceRecordsController < ApplicationController
   before_action :set_price_record, only: [:show, :edit, :update, :destroy]
 
   def index
-    @price_records = PriceRecord.all.includes(:product).order(recorded_at: :desc)
+    @price_records = PriceRecord.where(product: Current.user.products).includes(:product).order(recorded_at: :desc)
   end
 
   def show; end
 
   def new
-    @product = Product.find(params[:product_id])
+    @product = Current.user.products.find(params[:product_id])
     @price_record = @product.price_records.new
   end
 
   def create
-    @product = Product.find(params[:product_id])
+    @product = Current.user.products.find(params[:product_id])
     @price_record = @product.price_records.new(price_record_params)
     @price_record.recorded_at ||= Time.current
     if @price_record.save
@@ -44,7 +44,7 @@ class PriceRecordsController < ApplicationController
   private
 
   def set_price_record
-    @price_record = PriceRecord.find(params[:id])
+    @price_record = PriceRecord.where(product: Current.user.products).find(params[:id])
   end
 
   def price_record_params

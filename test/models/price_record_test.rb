@@ -2,7 +2,7 @@ require "test_helper"
 
 class PriceRecordTest < ActiveSupport::TestCase
   def setup
-    @product = Product.create!(name: "Test Product", category: "Electronics")
+    @product = users(:one).products.create!(name: "Test Product", category: "Electronics")
     @record = PriceRecord.new(
       product: @product,
       price: 99.99,
