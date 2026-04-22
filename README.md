@@ -1,25 +1,32 @@
-# smartshoppinglist
+# PriceTracker (Smart Shopping List)
 
-Team Members: Nicole Li, Andrew Xue, Amie Masih, Rahib Taher
+## Team
 
-- click and save link to database, link has a userID
-- save date you added to db
-- theoretically save an image associated with an item
-- user logs in, and they see a grid of saved items
-- item cards you can mark as resolved
-- set a buy at price, if item price drops say to that margin, it will notify you
-- actually, fist add the price you saw the item at initially, as we aren't sure if you can scrape for price across different stores
+Nicole Li, Andrew Xue, Amie Masih, Rahib Taher
 
-MVP Baseline: A web app where users can paste in product link, set a target price, and receive notification when condition is met. Items can be managed and track from simple dashboard
+## MVP
 
-Communication: 
-- Weekly meetings occurring on Saturdays in the afternoons and additional meetings based on team communication and application needs.
--  Decision-making will be a coordinated effort facilitated by consistent group meetings and internal communications.
--  The team will aim for consensus, but if agreement is not reached in a reasonable timeframe, decisions will be resolved by majority vote.
--  Decisions should be documented clearly, including the rationale behind them. Smaller decisions should be resolved asynchronously, while more complex or blocking issues will be discussed during scheduled meetings or escalated as needed.
--  When making decisions, the team will prioritize simplicity and alignment with the MVP to ensure steady progress.
+A web app where signed-in users save products they are watching, record prices seen at different stores, and review them from a simple dashboard. The baseline vision is to paste a product link, set a target price, and get notified when the price meets that condition (notifications are a stretch goal beyond the current milestone).
 
-# Miro: https://miro.com/app/board/uXjVGjU99U8=/
-# Meeting: https://www.when2meet.com/?36156767-PyTqS
-# Demo: https://smart-shoppinglist-6ae31171e85c.herokuapp.com/.
+## Communication
 
+- Weekly meetings on Saturday afternoons, with extra syncs when the app or deadlines need them.
+- Decisions are coordinated through those meetings and ongoing chat; the team aims for consensus.
+- If consensus is not reached in a reasonable time, decisions are resolved by majority vote.
+- Decisions are documented with rationale. Small decisions can be async; blocking or complex issues are raised in meetings or escalated early.
+- Choices prioritize simplicity and alignment with the MVP so progress stays steady.
+
+## Links
+
+- **OO design (Miro):** https://miro.com/app/board/uXjVGjU99U8=/
+- **Scheduling (When2meet):** https://www.when2meet.com/?36156767-PyTqS
+- **Heroku deployment:** https://smart-shoppinglist-6ae31171e85c.herokuapp.com/
+
+## Ideas captured from early planning
+
+- Save product links to the database with a user id.
+- Save the date an item was added.
+- Optionally save an image per item.
+- After login, show a grid of saved items with cards; mark items as resolved.
+- Set a “buy at” price and notify when price drops to that margin.
+- Start by storing the price you saw manually (scraping across stores is uncertain).

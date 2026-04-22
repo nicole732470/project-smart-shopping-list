@@ -48,6 +48,15 @@ Users only ever see and act on their own products; attempting to access another 
 - [x] Deployed on Heroku
 - [x] Automated tests running on GitHub Actions
 
+## Similar products and references
+
+These tools solve overlapping problems and are useful for comparison and inspiration:
+
+- [Camelcamelcamel](https://camelcamelcamel.com/) — Amazon price history charts and alerts.
+- [Keepa](https://keepa.com/) — Amazon price tracking and browser extensions.
+- [Honey / PayPal Rewards](https://www.joinhoney.com/) — coupons and price context while shopping (not the same as long-term watchlists, but adjacent).
+- [Google Shopping](https://shopping.google.com/) — compare prices across retailers for a quick snapshot.
+
 ## Features beyond MVP (planned / ideas)
 
 - **Target price + price-drop alerts.** Let users set a "notify me at" price per product; send an email when a new PriceRecord comes in below that threshold.
