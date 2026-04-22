@@ -50,32 +50,32 @@ store_urls = {
 }
 
 price_ranges = {
-  "Apple iPhone 15 Pro"         => [949, 1199],
-  "Samsung 65\" 4K QLED TV"    => [799, 1299],
-  "Sony WH-1000XM5 Headphones" => [279, 399],
-  "Apple MacBook Air M2"        => [999, 1299],
-  "PlayStation 5 Console"       => [449, 549],
-  "Dyson V15 Detect Vacuum"     => [649, 799],
-  "Nike Air Max 270"            => [89, 150],
-  "Atomic Habits by James Clear"=> [11, 27],
-  "Kindle Paperwhite (16GB)"    => [99, 149],
-  "Instant Pot Duo 7-in-1"     => [59, 99],
-  "iPad Air (M2)"                    => [599, 799],
-  "Bose QuietComfort Earbuds II"     => [199, 299],
-  "LG 27\" UltraGear Gaming Monitor" => [279, 399],
-  "Nintendo Switch OLED"             => [299, 349],
-  "Ninja Foodi Air Fryer"            => [129, 199],
-  "Lululemon Align Leggings"         => [79, 98],
-  "The Midnight Library by Matt Haig"=> [10, 18],
-  "Keurig K-Elite Coffee Maker"      => [129, 189],
-  "GoPro HERO12 Black"               => [349, 449],
-  "Adidas Ultraboost 22"             => [120, 190]
+  "Apple iPhone 15 Pro"         => [ 949, 1199 ],
+  "Samsung 65\" 4K QLED TV"    => [ 799, 1299 ],
+  "Sony WH-1000XM5 Headphones" => [ 279, 399 ],
+  "Apple MacBook Air M2"        => [ 999, 1299 ],
+  "PlayStation 5 Console"       => [ 449, 549 ],
+  "Dyson V15 Detect Vacuum"     => [ 649, 799 ],
+  "Nike Air Max 270"            => [ 89, 150 ],
+  "Atomic Habits by James Clear"=> [ 11, 27 ],
+  "Kindle Paperwhite (16GB)"    => [ 99, 149 ],
+  "Instant Pot Duo 7-in-1"     => [ 59, 99 ],
+  "iPad Air (M2)"                    => [ 599, 799 ],
+  "Bose QuietComfort Earbuds II"     => [ 199, 299 ],
+  "LG 27\" UltraGear Gaming Monitor" => [ 279, 399 ],
+  "Nintendo Switch OLED"             => [ 299, 349 ],
+  "Ninja Foodi Air Fryer"            => [ 129, 199 ],
+  "Lululemon Align Leggings"         => [ 79, 98 ],
+  "The Midnight Library by Matt Haig"=> [ 10, 18 ],
+  "Keurig K-Elite Coffee Maker"      => [ 129, 189 ],
+  "GoPro HERO12 Black"               => [ 349, 449 ],
+  "Adidas Ultraboost 22"             => [ 120, 190 ]
 }
 
-notes_options = ["Black Friday deal", "Holiday sale", "Limited time offer", "Coupon applied: SAVE10", "Regular price", "Clearance", ""]
+notes_options = [ "Black Friday deal", "Holiday sale", "Limited time offer", "Coupon applied: SAVE10", "Regular price", "Clearance", "" ]
 
 products.each do |product|
-  range = price_ranges[product.name] || [50, 500]
+  range = price_ranges[product.name] || [ 50, 500 ]
   stores = store_urls.keys.sample(3)
 
   stores.each_with_index do |store, i|

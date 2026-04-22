@@ -1,10 +1,10 @@
 Rails.application.routes.draw do
   resource :session
-  resource :registration, only: [:new, :create]
+  resource :registration, only: [ :new, :create ]
   resources :passwords, param: :token
-  root 'products#index'
+  root "products#index"
   resources :products do
-    resources :price_records, only: [:new, :create]
+    resources :price_records, only: [ :new, :create ]
   end
-  resources :price_records, only: [:index, :show, :edit, :update, :destroy]
+  resources :price_records, only: [ :index, :show, :edit, :update, :destroy ]
 end

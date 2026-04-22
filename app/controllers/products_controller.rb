@@ -1,5 +1,5 @@
 class ProductsController < ApplicationController
-  before_action :set_product, only: [:show, :edit, :update, :destroy]
+  before_action :set_product, only: [ :show, :edit, :update, :destroy ]
 
   def index
     @products = Current.user.products.includes(:price_records)
@@ -19,7 +19,7 @@ class ProductsController < ApplicationController
   def create
     @product = Current.user.products.build(product_params)
     if @product.save
-      redirect_to @product, notice: 'Product added successfully!'
+      redirect_to @product, notice: "Product added successfully!"
     else
       render :new, status: :unprocessable_entity
     end
@@ -29,7 +29,7 @@ class ProductsController < ApplicationController
 
   def update
     if @product.update(product_params)
-      redirect_to @product, notice: 'Product updated successfully!'
+      redirect_to @product, notice: "Product updated successfully!"
     else
       render :edit, status: :unprocessable_entity
     end
@@ -37,7 +37,7 @@ class ProductsController < ApplicationController
 
   def destroy
     @product.destroy
-    redirect_to products_url, notice: 'Product deleted.'
+    redirect_to products_url, notice: "Product deleted."
   end
 
   private

@@ -1,0 +1,40 @@
+{
+  "ignored_warnings": [
+    {
+      "warning_type": "Cross-Site Scripting",
+      "warning_code": 4,
+      "fingerprint": "5a2e78cbf1c301aeec07b68c69b2efba2afc2d1f23a7ac14f9ece7c48aa40e80",
+      "check_name": "LinkToHref",
+      "message": "Potentially unsafe model attribute in `link_to` href",
+      "file": "app/views/price_records/index.html.erb",
+      "line": 38,
+      "link": "https://brakemanscanner.org/docs/warning_types/link_to_href",
+      "code": null,
+      "render_path": null,
+      "location": null,
+      "user_input": null,
+      "confidence": "Weak",
+      "cwe_id": [79],
+      "note": "URL format validated in PriceRecord model to start with http:// or https://."
+    },
+    {
+      "warning_type": "Cross-Site Scripting",
+      "warning_code": 4,
+      "fingerprint": "d9a36a060a6c89ecab1f3bd97ba27631ef994850d6d20926e5596d2846d9e7ee",
+      "check_name": "LinkToHref",
+      "message": "Potentially unsafe model attribute in `link_to` href",
+      "file": "app/views/price_records/show.html.erb",
+      "line": 31,
+      "link": "https://brakemanscanner.org/docs/warning_types/link_to_href",
+      "code": null,
+      "render_path": null,
+      "location": null,
+      "user_input": null,
+      "confidence": "Weak",
+      "cwe_id": [79],
+      "note": "URL format validated in PriceRecord model to start with http:// or https://."
+    }
+  ],
+  "updated": "2026-04-21",
+  "brakeman_version": "8.0.4"
+}

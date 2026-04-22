@@ -17,11 +17,11 @@ gem "stimulus-rails"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 
-gem 'bootstrap', '~> 5.3'
-gem 'sassc-rails'
+gem "bootstrap", "~> 5.3"
+gem "sassc-rails"
 
 group :development, :test do
-  gem 'faker'
+  gem "faker"
 end
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
