@@ -3,9 +3,7 @@ class ProductsController < ApplicationController
 
   def index
     @products = Current.user.products.includes(:price_records)
-    if params[:search].present?
-      @products = @products.where("name LIKE ? OR category LIKE ?", "%#{params[:search]}%", "%#{params[:search]}%")
-    end
+    @products = fuzzy_search(@products, params[:search]) if params[:search].present?
   end
 
   def show
@@ -41,6 +39,19 @@ class ProductsController < ApplicationController
   end
 
   private
+
+  def fuzzy_search(scope, query)
+    tokens = query.to_s.downcase.split(/\s+/).reject(&:blank?)
+    return scope if tokens.empty?
+
+    tokens.inject(scope) do |s, token|
+      pattern = "%#{token}%"
+      s.where(
+        "LOWER(name) LIKE ? OR LOWER(category) LIKE ? OR LOWER(description) LIKE ?",
+        pattern, pattern, pattern
+      )
+    end
+  end
 
   def set_product
     @product = Current.user.products.find(params[:id])

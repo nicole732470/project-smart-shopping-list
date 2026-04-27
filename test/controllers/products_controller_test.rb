@@ -57,4 +57,24 @@ class ProductsControllerTest < ActionDispatch::IntegrationTest
     get products_url
     assert_redirected_to new_session_url
   end
+
+  test "search is case-insensitive and matches partial words" do
+    @user.products.create!(name: "Apple iPhone 15 Pro", category: "Electronics", description: "phone")
+    @user.products.create!(name: "Atomic Habits", category: "Books", description: "self help")
+
+    get products_url, params: { search: "iphone" }
+    assert_response :success
+    assert_match "Apple iPhone 15 Pro", response.body
+    assert_no_match "Atomic Habits", response.body
+  end
+
+  test "search matches across name, category, and description with multiple tokens" do
+    @user.products.create!(name: "Sony Headphones", category: "Electronics", description: "wireless noise cancelling")
+    @user.products.create!(name: "Wired Mouse", category: "Electronics", description: "USB device")
+
+    get products_url, params: { search: "wireless electronics" }
+    assert_response :success
+    assert_match "Sony Headphones", response.body
+    assert_no_match "Wired Mouse", response.body
+  end
 end
