@@ -21,6 +21,23 @@
           <span class="badge bg-primary mb-2"><%= @product.category %></span>
           <h2 class="card-title fs-4"><%= @product.name %></h2>
           <p class="card-text text-muted"><%= @product.description %></p>
+
+          <% if @product.source_url.present? %>
+            <p class="small mb-2">
+              <strong>Tracked from:</strong>
+              <%= link_to URI.parse(@product.source_url).host, @product.source_url, target: "_blank", class: "text-decoration-none" %>
+              <% if @product.last_fetched_at %>
+                <br>
+                <span class="text-muted">Last refreshed <%= time_ago_in_words(@product.last_fetched_at) %> ago</span>
+              <% end %>
+            </p>
+            <% if @product.last_fetch_error.present? %>
+              <div class="alert alert-warning small py-2 px-3 mb-2">
+                <strong>Last refresh failed:</strong> <%= @product.last_fetch_error %>
+              </div>
+            <% end %>
+          <% end %>
+
           <hr>
           <div class="d-flex justify-content-between">
             <div class="text-center">
@@ -38,6 +55,11 @@
           </div>
         </div>
         <div class="card-footer d-flex flex-column gap-2">
+          <% if @product.source_url.present? %>
+            <%= button_to "🔄 Fetch latest price", fetch_price_product_path(@product),
+                  method: :post, class: "btn btn-outline-primary btn-sm w-100",
+                  data: { turbo_confirm: "Fetch the latest price from the source URL? This may take a few seconds." } %>
+          <% end %>
           <%= link_to "✏️ Edit Product", edit_product_path(@product), class: "btn btn-outline-secondary btn-sm" %>
           <%= link_to "🗑️ Delete Product", @product, data: { turbo_method: :delete, turbo_confirm: "Delete this product and all its price records?" }, class: "btn btn-outline-danger btn-sm" %>
         </div>
@@ -58,6 +80,7 @@
                   <tr>
                     <th>Price</th>
                     <th>Store</th>
+                    <th>Source</th>
                     <th>Date</th>
                     <th>Notes</th>
                     <th>Link</th>
@@ -69,6 +92,13 @@
                     <tr>
                       <td><span class="badge bg-success fs-6">$<%= sprintf("%.2f", record.price) %></span></td>
                       <td><strong><%= record.store_name %></strong></td>
+                      <td>
+                        <% if record.source == "scraped" %>
+                          <span class="badge bg-info text-dark" title="Fetched automatically from the source URL">auto</span>
+                        <% else %>
+                          <span class="badge bg-secondary" title="Entered manually by you">manual</span>
+                        <% end %>
+                      </td>
                       <td><small><%= record.recorded_at.strftime("%b %d, %Y") %></small></td>
                       <td><small class="text-muted"><%= record.notes %></small></td>
                       <td>

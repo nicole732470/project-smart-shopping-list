@@ -38,6 +38,9 @@ erDiagram
         string   category
         text     description
         string   image_url
+        string   source_url       "nullable; opt-in auto-tracking"
+        datetime last_fetched_at  "nullable; set by PriceFetcher"
+        string   last_fetch_error "nullable; truncated to 250"
         datetime created_at
         datetime updated_at
     }
@@ -47,13 +50,28 @@ erDiagram
         bigint   product_id FK "not null"
         decimal  price
         string   store_name
-        string   url           "validated http(s) format"
+        string   url            "validated http(s) format"
         text     notes
+        string   source         "default 'manual'; 'manual' | 'scraped'"
         datetime recorded_at
         datetime created_at
         datetime updated_at
     }
 ```
+
+### Scraping fields (added in `AddScrapingFieldsToProductsAndPriceRecords`)
+
+These columns are entirely additive and opt-in. A product with
+`source_url IS NULL` behaves exactly as it did before this migration:
+no automatic refresh, no "Fetch latest price" button. See
+[scrapers.md](scrapers.md) for the full lifecycle.
+
+| Column | Default | Set by |
+|---|---|---|
+| `products.source_url` | `NULL` | User, on the new-product form |
+| `products.last_fetched_at` | `NULL` | `PriceFetcher.call` after a successful fetch |
+| `products.last_fetch_error` | `NULL` | `PriceFetcher.call` when a `PriceScrapers::Error` is rescued |
+| `price_records.source` | `"manual"` | `"manual"` for human-entered rows; `"scraped"` for rows created by `PriceFetcher` |
 
 ### Cardinality summary
 

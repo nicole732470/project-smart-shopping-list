@@ -20,6 +20,10 @@ gem "jbuilder"
 gem "bootstrap", "~> 5.3"
 gem "sassc-rails"
 
+# HTML parsing + HTTP for price scraper adapters
+gem "nokogiri"
+gem "httparty"
+
 group :development, :test do
   gem "faker"
 end

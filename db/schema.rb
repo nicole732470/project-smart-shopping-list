@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_21_233116) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_28_174220) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -20,10 +20,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_233116) do
     t.decimal "price"
     t.bigint "product_id", null: false
     t.datetime "recorded_at"
+    t.string "source", default: "manual", null: false
     t.string "store_name"
     t.datetime "updated_at", null: false
     t.string "url"
     t.index ["product_id"], name: "index_price_records_on_product_id"
+    t.index ["source"], name: "index_price_records_on_source"
   end
 
   create_table "products", force: :cascade do |t|
@@ -31,9 +33,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_233116) do
     t.datetime "created_at", null: false
     t.text "description"
     t.string "image_url"
+    t.string "last_fetch_error"
+    t.datetime "last_fetched_at"
     t.string "name"
+    t.string "source_url"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["source_url"], name: "index_products_on_source_url"
     t.index ["user_id"], name: "index_products_on_user_id"
   end
 

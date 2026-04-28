@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": []
+      },
+      {
+        "@type": "Product",
+        "name": "Generic Widget",
+        "image": {"@type": "ImageObject", "url": "https://example.com/widget.jpg"},
+        "offers": {
+          "@type": "AggregateOffer",
+          "lowPrice": "19.99",
+          "highPrice": "29.99",
+          "priceCurrency": "USD",
+          "offers": [
+            {"@type": "Offer", "price": "19.99", "priceCurrency": "USD"},
+            {"@type": "Offer", "price": "29.99", "priceCurrency": "USD"}
+          ]
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+<body></body>
+</html>

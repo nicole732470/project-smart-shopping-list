@@ -9,29 +9,56 @@
     </div>
   <% end %>
 
-  <div class="mb-3">
-    <%= f.label :name, "Product Name", class: "form-label fw-semibold" %>
-    <%= f.text_field :name, class: "form-control", placeholder: "e.g. Apple iPhone 15 Pro" %>
-  </div>
+  <% if product.new_record? %>
+    <div class="mb-3">
+      <%= f.label :source_url, "Product URL", class: "form-label fw-semibold" %>
+      <%= f.url_field :source_url, class: "form-control",
+            placeholder: "https://www.target.com/p/...",
+            required: true %>
+      <div class="form-text">
+        Paste a link to the product page. We'll fetch the title, image, and current price for you.
+      </div>
+    </div>
 
-  <div class="mb-3">
-    <%= f.label :category, "Category", class: "form-label fw-semibold" %>
-    <%= f.select :category,
-        ["Electronics", "Computers & Laptops", "TVs & Home Theater", "Cameras", "Gaming", "Appliances", "Clothing & Shoes", "Books", "Sports & Outdoors", "Beauty", "Other"],
-        { prompt: "Select a category" },
-        class: "form-select" %>
-  </div>
+    <div class="mb-3">
+      <%= f.label :category, "Category", class: "form-label fw-semibold" %>
+      <%= f.select :category,
+          ["Electronics", "Computers & Laptops", "TVs & Home Theater", "Cameras", "Gaming", "Appliances", "Clothing & Shoes", "Books", "Sports & Outdoors", "Beauty", "Other"],
+          { prompt: "Select a category" },
+          class: "form-select" %>
+    </div>
 
-  <div class="mb-3">
-    <%= f.label :description, "Description", class: "form-label fw-semibold" %>
-    <%= f.text_area :description, class: "form-control", rows: 3, placeholder: "Brief description of the product..." %>
-  </div>
+    <%= f.submit "Add Product", class: "btn btn-primary w-100" %>
+  <% else %>
+    <div class="mb-3">
+      <%= f.label :name, "Product Name", class: "form-label fw-semibold" %>
+      <%= f.text_field :name, class: "form-control" %>
+    </div>
 
-  <div class="mb-3">
-    <%= f.label :image_url, "Image URL (optional)", class: "form-label fw-semibold" %>
-    <%= f.text_field :image_url, class: "form-control", placeholder: "https://..." %>
-    <div class="form-text">Will be filled automatically by scraper in a future version.</div>
-  </div>
+    <div class="mb-3">
+      <%= f.label :category, "Category", class: "form-label fw-semibold" %>
+      <%= f.select :category,
+          ["Electronics", "Computers & Laptops", "TVs & Home Theater", "Cameras", "Gaming", "Appliances", "Clothing & Shoes", "Books", "Sports & Outdoors", "Beauty", "Other"],
+          { prompt: "Select a category" },
+          class: "form-select" %>
+    </div>
 
-  <%= f.submit product.new_record? ? "Add Product" : "Save Changes", class: "btn btn-primary w-100" %>
+    <div class="mb-3">
+      <%= f.label :source_url, "Product URL (used for auto-refresh)", class: "form-label fw-semibold" %>
+      <%= f.url_field :source_url, class: "form-control", placeholder: "https://..." %>
+      <div class="form-text">Leave blank to disable automatic price tracking for this product.</div>
+    </div>
+
+    <div class="mb-3">
+      <%= f.label :description, "Description", class: "form-label fw-semibold" %>
+      <%= f.text_area :description, class: "form-control", rows: 3 %>
+    </div>
+
+    <div class="mb-3">
+      <%= f.label :image_url, "Image URL", class: "form-label fw-semibold" %>
+      <%= f.text_field :image_url, class: "form-control", placeholder: "https://..." %>
+    </div>
+
+    <%= f.submit "Save Changes", class: "btn btn-primary w-100" %>
+  <% end %>
 <% end %>

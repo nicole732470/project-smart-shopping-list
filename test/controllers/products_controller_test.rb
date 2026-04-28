@@ -18,10 +18,24 @@ class ProductsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should create product" do
-    assert_difference("Product.count") do
-      post products_url, params: { product: { name: "Test", category: "Cat", description: "desc" } }
+    fake_result = PriceScrapers::Result.new(
+      price:      BigDecimal("9.99"),
+      currency:   "USD",
+      title:      "Stubbed Test Product",
+      image_url:  "https://example.com/x.jpg",
+      store_name: "Example",
+      fetched_at: Time.current
+    )
+    stub_method(PriceScrapers, :fetch, ->(_url, **_opts) { fake_result }) do
+      assert_difference("Product.count") do
+        post products_url, params: {
+          product: { source_url: "https://www.example.com/p/123", category: "Electronics" }
+        }
+      end
     end
     assert_redirected_to product_url(Product.last)
+    assert_equal "Stubbed Test Product", Product.last.name
+    assert_equal "scraped", Product.last.price_records.first.source
   end
 
   test "should show product" do

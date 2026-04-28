@@ -4,6 +4,12 @@ class Product < ApplicationRecord
 
     validates :name, presence: true
     validates :category, presence: true
+    # source_url is optional at the model level so legacy / seed / manual-only
+    # products remain valid. The new-product form makes it required at the UI
+    # level (HTML required + ProductsController#create blank check).
+    validates :source_url,
+              format: { with: %r{\Ahttps?://[^\s]+\z}i, message: "must start with http:// or https://" },
+              allow_blank: true
 
     def lowest_price
       price_records.minimum(:price)
