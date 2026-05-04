@@ -11,7 +11,7 @@ class AuthenticationComprehensiveTest < ActionDispatch::IntegrationTest
   # --- Session Lifecycle ---
 
   test "user can sign up with valid email and password" do
-    post registrations_path, params: {
+    post registration_path, params: {
       user: {
         email_address: "newuser@example.com",
         password: "SecurePassword123!",
@@ -21,11 +21,11 @@ class AuthenticationComprehensiveTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to root_path
     assert User.exists?(email_address: "newuser@example.com")
-    assert_equal "Signed up.", flash[:notice]
+    assert_match(/welcome/i, flash[:notice])
   end
 
   test "signup fails with duplicate email" do
-    post registrations_path, params: {
+    post registration_path, params: {
       user: {
         email_address: @user.email_address,
         password: "password",
@@ -38,7 +38,7 @@ class AuthenticationComprehensiveTest < ActionDispatch::IntegrationTest
   end
 
   test "signup fails with mismatched passwords" do
-    post registrations_path, params: {
+    post registration_path, params: {
       user: {
         email_address: "new@example.com",
         password: "password",
@@ -47,7 +47,8 @@ class AuthenticationComprehensiveTest < ActionDispatch::IntegrationTest
     }
 
     assert_response :unprocessable_entity
-    assert_match(/doesn't match/i, response.body)
+    # Apostrophes in error messages are HTML-escaped, so match around them.
+    assert_match(/match Password/i, response.body)
   end
 
   test "session persists across requests when authenticated" do
@@ -168,7 +169,7 @@ class AuthenticationComprehensiveTest < ActionDispatch::IntegrationTest
   # --- Email Normalization ---
 
   test "email is normalized to lowercase" do
-    post registrations_path, params: {
+    post registration_path, params: {
       user: {
         email_address: "TestUser@EXAMPLE.COM",
         password: "password",
@@ -181,7 +182,7 @@ class AuthenticationComprehensiveTest < ActionDispatch::IntegrationTest
   end
 
   test "email with leading/trailing whitespace is trimmed" do
-    post registrations_path, params: {
+    post registration_path, params: {
       user: {
         email_address: "  trimmed@example.com  ",
         password: "password",
@@ -240,14 +241,14 @@ class AuthenticationComprehensiveTest < ActionDispatch::IntegrationTest
   # --- Session Attributes ---
 
   test "session stores user_agent and ip_address" do
-    sign_in_as(@user)
-    post session_path, params: {
-      email_address: @user.email_address,
-      password: "password"
-    }
+    # Rails' integration-test request has no User-Agent by default, so set one
+    # explicitly to verify the controller captures it on the new session.
+    post session_path,
+         params: { email_address: @user.email_address, password: "password" },
+         headers: { "User-Agent" => "TestBrowser/1.0" }
 
-    session = @user.sessions.last
-    assert session.user_agent.present?
+    session = @user.sessions.order(:created_at).last
+    assert_equal "TestBrowser/1.0", session.user_agent
     assert session.ip_address.present?
   end
 
@@ -283,13 +284,14 @@ class AuthenticationComprehensiveTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
     delete session_path
 
-    assert_nil cookies["session_id"]
+    # Rails sets the cookie to an empty string when deleted (not nil) in tests.
+    assert_empty cookies["session_id"]
   end
 
   # --- Email Format Validation ---
 
   test "invalid email format is rejected" do
-    post registrations_path, params: {
+    post registration_path, params: {
       user: {
         email_address: "not-an-email",
         password: "password",
@@ -302,7 +304,7 @@ class AuthenticationComprehensiveTest < ActionDispatch::IntegrationTest
   end
 
   test "email with spaces is rejected" do
-    post registrations_path, params: {
+    post registration_path, params: {
       user: {
         email_address: "invalid email@example.com",
         password: "password",
