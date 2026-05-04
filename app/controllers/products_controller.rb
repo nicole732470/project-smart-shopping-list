@@ -102,19 +102,26 @@ class ProductsController < ApplicationController
 
   private
 
-  # Group price records by store for the price-history chart. Stores with only
-  # one observation get that point duplicated at the overall date range so the
-  # chart still draws a flat horizontal line — same convention as Newegg/CamelCamelCamel.
+  # Group price records by store for the price-history chart. A store with a
+  # single observation gets that point duplicated at the chart's overall date
+  # range so the chart still draws a flat horizontal line, same convention as
+  # Newegg / CamelCamelCamel. When the product itself has only one record
+  # (so all dates are the same), extend the range to today (with a 1-day
+  # minimum span) so the line still has somewhere to draw.
   def build_chart_data(records)
     return [] if records.empty?
 
     dates = records.map { |r| r.recorded_at.to_date }
     range_start, range_end = dates.min, dates.max
 
+    if range_start == range_end
+      range_end = [ Date.current, range_start + 1 ].max
+    end
+
     records.group_by(&:store_name).map do |store, recs|
       points = recs.sort_by(&:recorded_at).map { |r| [ r.recorded_at.to_date.iso8601, r.price.to_f ] }
 
-      if points.size == 1 && range_start != range_end
+      if points.size == 1
         _, y = points.first
         points = [ [ range_start.iso8601, y ], [ range_end.iso8601, y ] ]
       end
