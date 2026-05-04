@@ -8,12 +8,17 @@
                   else                { label: "Heads up", icon: "i", color: "var(--orange)" }
                   end
       %>
-      <div class="pt-flash" role="alert" style="border-left: 3px solid <%= variant[:color] %>;">
+      <div class="pt-flash" role="alert"
+           data-controller="flash"
+           style="border-left: 3px solid <%= variant[:color] %>;">
         <span class="pt-flash-icon" style="background: <%= variant[:color] %>;"><%= variant[:icon] %></span>
         <div class="pt-flash-body">
           <div class="pt-flash-label"><%= variant[:label].upcase %></div>
           <div class="pt-flash-msg"><%= message %></div>
         </div>
+        <button class="pt-flash-x" type="button"
+                data-action="click->flash#dismiss"
+                aria-label="Dismiss">&times;</button>
       </div>
     <% end %>
   </div>
