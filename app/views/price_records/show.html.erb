@@ -1,49 +1,54 @@
-<div class="container mt-4" style="max-width: 600px;">
-  <nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><%= link_to "Home", root_path %></li>
-      <li class="breadcrumb-item"><%= link_to "Price Records", price_records_path %></li>
-      <li class="breadcrumb-item active">Record #<%= @price_record.id %></li>
-    </ol>
-  </nav>
+<main class="pt-page">
+  <div class="container-xl pt-content pt-narrow">
+    <nav class="pt-crumbs" aria-label="Breadcrumb">
+      <span class="pt-crumb"><%= link_to "Home", root_path %></span>
+      <span class="pt-crumb-sep">/</span>
+      <span class="pt-crumb"><%= link_to "Price Records", price_records_path %></span>
+      <span class="pt-crumb-sep">/</span>
+      <span class="pt-crumb pt-crumb-current">#<%= sprintf("%03d", @price_record.id) %></span>
+    </nav>
 
-  <div class="card shadow-sm">
-    <div class="card-header bg-dark text-white">
-      <h5 class="mb-0">Price Record #<%= @price_record.id %></h5>
-    </div>
-    <div class="card-body">
-      <dl class="row">
-        <dt class="col-sm-4">Product</dt>
-        <dd class="col-sm-8"><%= link_to @price_record.product.name, @price_record.product %></dd>
+    <header style="margin-bottom: 28px;">
+      <div class="pt-eyebrow">Observation</div>
+      <h1 class="pt-h1" style="font-size: 32px;">$<%= sprintf("%.2f", @price_record.price) %> at <%= @price_record.store_name %></h1>
+      <p class="pt-lede"><%= link_to @price_record.product.name, @price_record.product, class: "pt-link pt-link-strong" %></p>
+    </header>
 
-        <dt class="col-sm-4">Price</dt>
-        <dd class="col-sm-8"><span class="badge bg-success fs-5">$<%= sprintf("%.2f", @price_record.price) %></span></dd>
+    <div class="pt-panel" style="padding: 22px;">
+      <dl class="pt-meta" style="grid-template-columns: 140px 1fr; gap: 14px 18px;">
+        <dt>Price</dt>
+        <dd class="pt-mono pt-strong" style="font-size: 18px;">$<%= sprintf("%.2f", @price_record.price) %></dd>
 
-        <dt class="col-sm-4">Store</dt>
-        <dd class="col-sm-8"><strong><%= @price_record.store_name %></strong></dd>
+        <dt>Store</dt>
+        <dd class="pt-strong"><%= @price_record.store_name %></dd>
 
-        <dt class="col-sm-4">Date Recorded</dt>
-        <dd class="col-sm-8"><%= @price_record.recorded_at.strftime("%B %d, %Y at %I:%M %p") %></dd>
+        <dt>Source</dt>
+        <dd>
+          <% src_class = @price_record.source == "scraped" ? "pt-source-auto" : "pt-source-manual" %>
+          <span class="pt-source <%= src_class %>"><%= @price_record.source == "scraped" ? "auto" : "manual" %></span>
+        </dd>
 
-        <dt class="col-sm-4">Purchase Link</dt>
-        <dd class="col-sm-8">
+        <dt>Recorded</dt>
+        <dd class="pt-mono"><%= @price_record.recorded_at.strftime("%B %d, %Y at %I:%M %p") %></dd>
+
+        <dt>Purchase URL</dt>
+        <dd>
           <% if @price_record.url.present? %>
-            <%= link_to "🛒 Buy Now", @price_record.url, target: "_blank", class: "btn btn-success btn-sm" %>
-            <br><small class="text-muted"><%= @price_record.url %></small>
+            <%= link_to @price_record.url, @price_record.url, target: "_blank", rel: "noopener noreferrer", class: "pt-mono pt-link" %>
           <% else %>
-            <span class="text-muted">No link provided</span>
+            <span class="pt-muted">—</span>
           <% end %>
         </dd>
 
-        <dt class="col-sm-4">Notes</dt>
-        <dd class="col-sm-8"><%= @price_record.notes.present? ? @price_record.notes : "—" %></dd>
+        <dt>Notes</dt>
+        <dd><%= @price_record.notes.presence || content_tag(:span, "—", class: "pt-muted") %></dd>
       </dl>
     </div>
-    <div class="card-footer d-flex gap-2">
-      <%= link_to "✏️ Edit", edit_price_record_path(@price_record), class: "btn btn-outline-secondary" %>
-      <%= link_to "🗑️ Delete", @price_record, data: { turbo_method: :delete, turbo_confirm: "Delete this record?" }, class: "btn btn-outline-danger" %>
-      <%= link_to "← Back to Product", @price_record.product, class: "btn btn-outline-primary" %>
-      <%= link_to "All Records", price_records_path, class: "btn btn-outline-dark" %>
+
+    <div class="pt-form-actions" style="margin-top: 28px; flex-direction: row; justify-content: center;">
+      <%= link_to "Edit", edit_price_record_path(@price_record), class: "pt-btn pt-btn-secondary" %>
+      <%= link_to "Back to product", @price_record.product, class: "pt-btn pt-btn-ghost" %>
+      <%= link_to "Delete", @price_record, data: { turbo_method: :delete, turbo_confirm: "Delete this record?" }, class: "pt-link-btn pt-link-btn-danger" %>
     </div>
   </div>
-</div>
+</main>

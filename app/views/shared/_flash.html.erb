@@ -1,6 +1,20 @@
-<% flash.each do |type, message| %>
-  <% bootstrap_class = type.to_s == "notice" ? "alert-success" : "alert-danger" %>
-  <div class="alert <%= bootstrap_class %> m-3" role="alert">
-    <%= message %>
+<% if flash.any? %>
+  <div class="pt-flash-stack">
+    <% flash.each do |type, message| %>
+      <%
+        variant = case type.to_s
+                  when "notice" then { label: "Success", icon: "✓", color: "var(--green)" }
+                  when "alert"  then { label: "Error",   icon: "✕", color: "var(--red)" }
+                  else                { label: "Heads up", icon: "i", color: "var(--orange)" }
+                  end
+      %>
+      <div class="pt-flash" role="alert" style="border-left: 3px solid <%= variant[:color] %>;">
+        <span class="pt-flash-icon" style="background: <%= variant[:color] %>;"><%= variant[:icon] %></span>
+        <div class="pt-flash-body">
+          <div class="pt-flash-label"><%= variant[:label].upcase %></div>
+          <div class="pt-flash-msg"><%= message %></div>
+        </div>
+      </div>
+    <% end %>
   </div>
 <% end %>

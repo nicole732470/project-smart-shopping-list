@@ -119,12 +119,12 @@ class ProductsControllerTest < ActionDispatch::IntegrationTest
     @user.products.destroy_all
     get products_url
     assert_response :success
-    assert_match "Your shopping list is empty", response.body
+    assert_match "No products yet", response.body
   end
 
   test "no-match state appears when filters return nothing" do
     get products_url, params: { search: "this-string-will-never-match" }
     assert_response :success
-    assert_match "No products match your filters", response.body
+    assert_match "No products match", response.body
   end
 end

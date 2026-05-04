@@ -1,20 +1,58 @@
-<div class="container" style="max-width: 420px;">
-  <h2 class="mb-4">Sign in</h2>
+<div class="pt-auth">
+  <div class="pt-auth-grid">
+    <aside class="pt-auth-side">
+      <div class="pt-auth-mark">P/T</div>
+      <div class="pt-auth-side-eyebrow">Welcome back</div>
+      <h1 class="pt-auth-side-title">Sign in to keep watching prices.</h1>
+      <p class="pt-auth-side-lede">
+        We'll pick up where you left off, with every saved product and price
+        observation right where it should be.
+      </p>
+      <div class="pt-auth-side-spec">
+        <div class="pt-auth-side-row">
+          <span class="pt-mono">01</span>
+          <span>Paste a product link.</span>
+        </div>
+        <div class="pt-auth-side-row">
+          <span class="pt-mono">02</span>
+          <span>We grab the title, image, and current price.</span>
+        </div>
+        <div class="pt-auth-side-row">
+          <span class="pt-mono">03</span>
+          <span>Watch the chart for drops across stores.</span>
+        </div>
+      </div>
+    </aside>
 
-  <%= form_with url: session_path, local: true do |form| %>
-    <div class="mb-3">
-      <%= form.label :email_address, class: "form-label" %>
-      <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", class: "form-control", value: params[:email_address] %>
-    </div>
-    <div class="mb-3">
-      <%= form.label :password, class: "form-label" %>
-      <%= form.password_field :password, required: true, autocomplete: "current-password", maxlength: 72, class: "form-control" %>
-    </div>
-    <%= form.submit "Sign in", class: "btn btn-primary w-100" %>
-  <% end %>
+    <div class="pt-auth-form-wrap">
+      <%= form_with url: session_path, local: true, class: "pt-auth-form" do |form| %>
+        <div class="pt-eyebrow">Sign in</div>
+        <h2 class="pt-h1">Welcome back</h2>
 
-  <div class="mt-3 d-flex justify-content-between">
-    <%= link_to "Create account", new_registration_path %>
-    <%= link_to "Forgot password?", new_password_path %>
+        <div class="pt-form" style="margin-top: 24px;">
+          <div class="pt-field">
+            <label class="pt-field-label" for="email_address">Email address</label>
+            <%= form.email_field :email_address,
+                  required: true, autofocus: true, autocomplete: "username",
+                  class: "pt-input", value: params[:email_address] %>
+          </div>
+          <div class="pt-field">
+            <label class="pt-field-label" for="password">Password</label>
+            <%= form.password_field :password,
+                  required: true, autocomplete: "current-password", maxlength: 72,
+                  class: "pt-input" %>
+          </div>
+
+          <%= form.submit "Sign in", class: "pt-btn pt-btn-primary pt-btn-lg pt-btn-block" %>
+        </div>
+
+        <div class="pt-auth-foot">
+          New here? <%= link_to "Create an account", new_registration_path, class: "pt-link pt-link-strong" %>
+        </div>
+        <div class="pt-auth-links">
+          <%= link_to "Forgot password?", new_password_path, class: "pt-link" %>
+        </div>
+      <% end %>
+    </div>
   </div>
 </div>

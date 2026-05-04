@@ -1,24 +1,51 @@
-<%= form_with model: product, local: true do |f| %>
+<%= form_with model: product, local: true, class: "pt-form" do |f| %>
   <% if product.errors.any? %>
-    <div class="alert alert-danger">
-      <ul class="mb-0">
-        <% product.errors.full_messages.each do |msg| %>
-          <li><%= msg %></li>
-        <% end %>
-      </ul>
+    <div class="pt-flash" role="alert" style="border-left: 3px solid var(--red);">
+      <span class="pt-flash-icon" style="background: var(--red);">!</span>
+      <div class="pt-flash-body">
+        <div class="pt-flash-label">FIX TO CONTINUE</div>
+        <div class="pt-flash-msg">
+          <% product.errors.full_messages.each do |msg| %>
+            <div><%= msg %></div>
+          <% end %>
+        </div>
+      </div>
     </div>
   <% end %>
+
+  <% categories = ["Electronics", "Computers & Laptops", "TVs & Home Theater", "Cameras", "Gaming", "Appliances", "Clothing & Shoes", "Books", "Sports & Outdoors", "Beauty", "Other"] %>
 
   <% if product.new_record? %>
     <% manual = local_assigns.fetch(:manual, false) %>
     <%= hidden_field_tag :manual, "1" if manual %>
 
-    <div class="mb-3">
-      <%= f.label :source_url, "Product URL", class: "form-label fw-semibold" %>
-      <%= f.url_field :source_url, class: "form-control",
+    <div class="pt-mode-tabs">
+      <%= link_to new_product_path, class: "pt-mode-tab #{'is-active' unless manual}", style: "text-decoration: none; color: inherit;" do %>
+        <span class="pt-mode-num">01</span>
+        <div>
+          <div class="pt-mode-title">Auto-fetch from URL</div>
+          <div class="pt-mode-sub">Paste a product link, we grab the rest.</div>
+        </div>
+      <% end %>
+      <%= link_to new_product_path(manual: 1), class: "pt-mode-tab #{'is-active' if manual}", style: "text-decoration: none; color: inherit;" do %>
+        <span class="pt-mode-num">02</span>
+        <div>
+          <div class="pt-mode-title">Fill in manually</div>
+          <div class="pt-mode-sub">When the site doesn't support auto-fetch.</div>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="pt-field">
+      <label class="pt-field-label" for="product_source_url">
+        Product URL
+        <% if !manual %><span class="pt-field-req">required</span><% end %>
+      </label>
+      <%= f.url_field :source_url,
+            class: "pt-input",
             placeholder: "https://www.lululemon.com/p/...",
             required: !manual %>
-      <div class="form-text">
+      <div class="pt-field-hint">
         <% if manual %>
           We'll still save the link with the product so you can record prices against it later.
         <% else %>
@@ -27,71 +54,66 @@
       </div>
     </div>
 
-    <div class="mb-3">
-      <%= f.label :category, "Category", class: "form-label fw-semibold" %>
-      <%= f.select :category,
-          ["Electronics", "Computers & Laptops", "TVs & Home Theater", "Cameras", "Gaming", "Appliances", "Clothing & Shoes", "Books", "Sports & Outdoors", "Beauty", "Other"],
-          { prompt: "Select a category" },
-          class: "form-select" %>
+    <div class="pt-field">
+      <label class="pt-field-label" for="product_category">Category</label>
+      <%= f.select :category, categories, { prompt: "Select a category" }, class: "pt-select pt-input pt-input-block" %>
     </div>
 
     <% if manual %>
-      <div class="mb-3">
-        <%= f.label :name, "Product name", class: "form-label fw-semibold" %>
-        <%= f.text_field :name, class: "form-control", required: true %>
+      <div class="pt-field">
+        <label class="pt-field-label" for="product_name">
+          Product name <span class="pt-field-req">required</span>
+        </label>
+        <%= f.text_field :name, class: "pt-input", required: true %>
       </div>
 
-      <div class="mb-3">
-        <%= f.label :description, "Description", class: "form-label fw-semibold" %>
-        <%= f.text_area :description, class: "form-control", rows: 3 %>
+      <div class="pt-field">
+        <label class="pt-field-label" for="product_description">Description</label>
+        <%= f.text_area :description, class: "pt-input", rows: 3 %>
       </div>
 
-      <div class="mb-3">
-        <%= f.label :image_url, "Image URL (optional)", class: "form-label fw-semibold" %>
-        <%= f.url_field :image_url, class: "form-control", placeholder: "https://..." %>
-      </div>
-
-      <%= f.submit "Add Product", class: "btn btn-primary w-100" %>
-      <div class="text-center mt-2">
-        <%= link_to "← Try the auto-fetch flow instead", new_product_path, class: "small text-muted" %>
-      </div>
-    <% else %>
-      <%= f.submit "Add Product", class: "btn btn-primary w-100" %>
-      <div class="text-center mt-2">
-        <%= link_to "Site not supported? Fill in details manually →",
-              new_product_path(manual: 1), class: "small text-muted" %>
+      <div class="pt-field">
+        <label class="pt-field-label" for="product_image_url">
+          Image URL <span class="pt-field-req">optional</span>
+        </label>
+        <%= f.url_field :image_url, class: "pt-input", placeholder: "https://..." %>
       </div>
     <% end %>
+
+    <div class="pt-form-actions">
+      <%= f.submit "Add Product", class: "pt-btn pt-btn-primary pt-btn-lg" %>
+      <%= link_to "← Back to products", products_path, class: "pt-link-btn" %>
+    </div>
   <% else %>
-    <div class="mb-3">
-      <%= f.label :name, "Product Name", class: "form-label fw-semibold" %>
-      <%= f.text_field :name, class: "form-control" %>
+    <div class="pt-field">
+      <label class="pt-field-label" for="product_name">Product name</label>
+      <%= f.text_field :name, class: "pt-input" %>
     </div>
 
-    <div class="mb-3">
-      <%= f.label :category, "Category", class: "form-label fw-semibold" %>
-      <%= f.select :category,
-          ["Electronics", "Computers & Laptops", "TVs & Home Theater", "Cameras", "Gaming", "Appliances", "Clothing & Shoes", "Books", "Sports & Outdoors", "Beauty", "Other"],
-          { prompt: "Select a category" },
-          class: "form-select" %>
+    <div class="pt-field">
+      <label class="pt-field-label" for="product_category">Category</label>
+      <%= f.select :category, categories, { prompt: "Select a category" }, class: "pt-select pt-input pt-input-block" %>
     </div>
 
-    <div class="mb-3">
-      <%= f.label :source_url, "Product URL (used for auto-refresh)", class: "form-label fw-semibold" %>
-      <%= f.url_field :source_url, class: "form-control", placeholder: "https://..." %>
-      <div class="form-text">Leave blank to disable automatic price tracking for this product.</div>
+    <div class="pt-field">
+      <label class="pt-field-label" for="product_source_url">Product URL <span class="pt-field-req">used for auto-refresh</span></label>
+      <%= f.url_field :source_url, class: "pt-input", placeholder: "https://..." %>
+      <div class="pt-field-hint">Leave blank to disable automatic price tracking for this product.</div>
     </div>
 
-    <div class="mb-3">
-      <%= f.label :description, "Description", class: "form-label fw-semibold" %>
-      <%= f.text_area :description, class: "form-control", rows: 3 %>
+    <div class="pt-field">
+      <label class="pt-field-label" for="product_description">Description</label>
+      <%= f.text_area :description, class: "pt-input", rows: 3 %>
     </div>
 
-    <div class="mb-3">
-      <%= f.label :image_url, "Image URL", class: "form-label fw-semibold" %>
-      <%= f.text_field :image_url, class: "form-control", placeholder: "https://..." %>
+    <div class="pt-field">
+      <label class="pt-field-label" for="product_image_url">Image URL</label>
+      <%= f.url_field :image_url, class: "pt-input", placeholder: "https://..." %>
     </div>
 
-    <%= f.submit "Save Changes", class: "btn btn-primary w-100" %>
+    <div class="pt-form-actions">
+      <%= f.submit "Save changes", class: "pt-btn pt-btn-primary pt-btn-lg" %>
+      <%= link_to "Cancel", product, class: "pt-link-btn" %>
+    </div>
   <% end %>
 <% end %>

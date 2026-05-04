@@ -1,8 +1,24 @@
-<h1>Forgot your password?</h1>
+<main class="pt-page">
+  <div class="container-xl pt-content pt-narrow">
+    <header class="pt-form-head">
+      <div class="pt-eyebrow">Account recovery</div>
+      <h1 class="pt-h1">Forgot your password?</h1>
+      <p class="pt-lede">Enter the email on your account and we'll send you a link to reset it.</p>
+    </header>
 
-<%= tag.div(flash[:alert], style: "color:red") if flash[:alert] %>
-
-<%= form_with url: passwords_path do |form| %>
-  <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: "Enter your email address", value: params[:email_address] %><br>
-  <%= form.submit "Email reset instructions" %>
-<% end %>
+    <%= form_with url: passwords_path, local: true, class: "pt-form" do |form| %>
+      <div class="pt-field">
+        <label class="pt-field-label" for="email_address">Email address</label>
+        <%= form.email_field :email_address,
+              required: true, autofocus: true, autocomplete: "username",
+              placeholder: "you@example.com",
+              value: params[:email_address],
+              class: "pt-input" %>
+      </div>
+      <div class="pt-form-actions">
+        <%= form.submit "Email reset instructions", class: "pt-btn pt-btn-primary pt-btn-lg" %>
+        <%= link_to "Back to sign in", new_session_path, class: "pt-link-btn" %>
+      </div>
+    <% end %>
+  </div>
+</main>

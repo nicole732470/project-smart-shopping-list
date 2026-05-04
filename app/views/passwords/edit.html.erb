@@ -1,9 +1,28 @@
-<h1>Update your password</h1>
+<main class="pt-page">
+  <div class="container-xl pt-content pt-narrow">
+    <header class="pt-form-head">
+      <div class="pt-eyebrow">Account recovery</div>
+      <h1 class="pt-h1">Update your password</h1>
+    </header>
 
-<%= tag.div(flash[:alert], style: "color:red") if flash[:alert] %>
-
-<%= form_with url: password_path(params[:token]), method: :put do |form| %>
-  <%= form.password_field :password, required: true, autocomplete: "new-password", placeholder: "Enter new password", maxlength: 72 %><br>
-  <%= form.password_field :password_confirmation, required: true, autocomplete: "new-password", placeholder: "Repeat new password", maxlength: 72 %><br>
-  <%= form.submit "Save" %>
-<% end %>
+    <%= form_with url: password_path(params[:token]), method: :put, local: true, class: "pt-form" do |form| %>
+      <div class="pt-field">
+        <label class="pt-field-label" for="password">New password</label>
+        <%= form.password_field :password,
+              required: true, autocomplete: "new-password",
+              placeholder: "New password", maxlength: 72,
+              class: "pt-input" %>
+      </div>
+      <div class="pt-field">
+        <label class="pt-field-label" for="password_confirmation">Confirm new password</label>
+        <%= form.password_field :password_confirmation,
+              required: true, autocomplete: "new-password",
+              placeholder: "Repeat new password", maxlength: 72,
+              class: "pt-input" %>
+      </div>
+      <div class="pt-form-actions">
+        <%= form.submit "Save", class: "pt-btn pt-btn-primary pt-btn-lg" %>
+      </div>
+    <% end %>
+  </div>
+</main>

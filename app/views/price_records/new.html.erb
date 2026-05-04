@@ -1,12 +1,11 @@
-<div class="container mt-4" style="max-width: 600px;">
-  <h2>➕ Add Price Record</h2>
-  <p class="text-muted">Adding price for <strong><%= @product.name %></strong></p>
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <%= render 'form', price_record: @price_record, product: @product %>
-    </div>
+<main class="pt-page">
+  <div class="container-xl pt-content pt-narrow">
+    <header class="pt-form-head">
+      <div class="pt-eyebrow">Log a price</div>
+      <h1 class="pt-h1">New observation</h1>
+      <p class="pt-lede">Adding to <strong><%= @product.name %></strong>.</p>
+    </header>
+
+    <%= render "form", price_record: @price_record, product: @product %>
   </div>
-  <div class="mt-2">
-    <%= link_to "← Back to Product", @product, class: "btn btn-outline-secondary" %>
-  </div>
-</div>
+</main>

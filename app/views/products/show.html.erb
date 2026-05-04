@@ -1,86 +1,133 @@
-<div class="container mt-4">
-  <nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><%= link_to "Home", root_path %></li>
-      <li class="breadcrumb-item"><%= link_to "Products", products_path %></li>
-      <li class="breadcrumb-item active"><%= @product.name %></li>
-    </ol>
-  </nav>
+<main class="pt-page">
+  <div class="container-xl pt-content">
+    <nav class="pt-crumbs" aria-label="Breadcrumb">
+      <span class="pt-crumb"><%= link_to "Home", root_path %></span>
+      <span class="pt-crumb-sep">/</span>
+      <span class="pt-crumb"><%= link_to "Products", products_path %></span>
+      <span class="pt-crumb-sep">/</span>
+      <span class="pt-crumb pt-crumb-current"><%= @product.name %></span>
+    </nav>
 
-  <div class="row">
-    <div class="col-md-4">
-      <div class="card shadow-sm mb-4">
-        <% if @product.image_url.present? %>
-          <%= image_tag @product.image_url, class: "card-img-top", style: "max-height:280px; object-fit:cover;" %>
-        <% else %>
-          <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 200px;">
-            <span class="fs-1">📦</span>
+    <% latest = @product.latest_price %>
+    <% lowest = @product.lowest_price %>
+    <% lowest_store = @lowest_price_record&.store_name %>
+    <% trend = @product.respond_to?(:price_trend) ? @product.price_trend : nil %>
+    <% trend_label = case trend
+                     when 1 then "Up"
+                     when -1 then "Down"
+                     else "Stable"
+                     end %>
+    <% trend_color, trend_bg = case trend
+                               when 1 then [ "var(--orange)", "#fff3e6" ]
+                               when -1 then [ "var(--green)", "var(--green-50)" ]
+                               else [ "var(--muted-2)", "var(--bg-2)" ]
+                               end %>
+
+    <div class="pt-detail-grid">
+      <aside class="pt-detail-side">
+        <div class="pt-prod-card">
+          <div class="pt-prod-media">
+            <% if @product.image_url.present? %>
+              <%= image_tag @product.image_url, alt: @product.name %>
+            <% else %>
+              <div style="width:100%;height:100%;display:grid;place-items:center;font-size:64px;color:var(--muted);">📦</div>
+            <% end %>
           </div>
-        <% end %>
-        <div class="card-body">
-          <span class="badge bg-primary mb-2"><%= @product.category %></span>
-          <h2 class="card-title fs-4"><%= @product.name %></h2>
-          <p class="card-text text-muted"><%= @product.description %></p>
+          <div class="pt-prod-body">
+            <span class="pt-tag"><%= @product.category %></span>
+            <h1 class="pt-prod-title"><%= @product.name %></h1>
+            <% if @product.description.present? %>
+              <p class="pt-prod-desc"><%= @product.description %></p>
+            <% end %>
 
-          <% if @product.source_url.present? %>
-            <p class="small mb-2">
-              <strong>Tracked from:</strong>
-              <%= link_to URI.parse(@product.source_url).host, @product.source_url, target: "_blank", rel: "noopener noreferrer", class: "text-decoration-none" %>
-              <% if @product.last_fetched_at %>
-                <br>
-                <span class="text-muted">Last refreshed <%= time_ago_in_words(@product.last_fetched_at) %> ago</span>
+            <div class="pt-rule"></div>
+
+            <dl class="pt-meta">
+              <% if @product.source_url.present? %>
+                <dt>Tracked from</dt>
+                <dd>
+                  <%= link_to (URI.parse(@product.source_url).host.to_s rescue @product.source_url),
+                        @product.source_url, target: "_blank", rel: "noopener noreferrer",
+                        class: "pt-mono pt-link" %>
+                </dd>
               <% end %>
-            </p>
+              <% if @product.last_fetched_at %>
+                <dt>Last refresh</dt>
+                <dd class="pt-mono"><%= time_ago_in_words(@product.last_fetched_at) %> ago</dd>
+              <% end %>
+              <dt>Tracking since</dt>
+              <dd class="pt-mono"><%= time_ago_in_words(@product.created_at) %> ago</dd>
+            </dl>
+
             <% if @product.last_fetch_error.present? %>
-              <div class="alert alert-warning small py-2 px-3 mb-2">
-                <strong>Last refresh failed:</strong> <%= @product.last_fetch_error %>
+              <div class="pt-flash" role="alert" style="border-left: 3px solid var(--orange); margin-top: 12px;">
+                <span class="pt-flash-icon" style="background: var(--orange);">!</span>
+                <div class="pt-flash-body">
+                  <div class="pt-flash-label">REFRESH FAILED</div>
+                  <div class="pt-flash-msg"><%= @product.last_fetch_error %></div>
+                </div>
               </div>
             <% end %>
-          <% end %>
 
-          <hr>
-          <div class="d-flex justify-content-between">
-            <div class="text-center">
-              <div class="fs-5 fw-bold text-success">
-                <% if @product.latest_price %>$<%= sprintf("%.2f", @product.latest_price) %><% else %>—<% end %>
-              </div>
-              <small class="text-muted">Latest Price</small>
-              <% if @product.price_trend %>
-                <div class="mt-2">
-                  <span class="fs-4" title="<%= @product.price_trend_description %>"><%= @product.price_trend_emoji %></span>
-                  <small class="d-block text-muted"><%= @product.price_trend_description.downcase %></small>
+            <div class="pt-rule"></div>
+
+            <div class="pt-prod-stats">
+              <div>
+                <div class="pt-stat-label">LATEST</div>
+                <div class="pt-prod-price">
+                  <% if latest %>$<%= sprintf("%.2f", latest) %><% else %>—<% end %>
                 </div>
-              <% end %>
-            </div>
-            <div class="text-center">
-              <div class="fs-5 fw-bold text-danger">
-                <% if @product.lowest_price %>$<%= sprintf("%.2f", @product.lowest_price) %><% else %>—<% end %>
+                <% if trend %>
+                  <span class="pt-trend" style="color: <%= trend_color %>; background: <%= trend_bg %>;">
+                    <span><%= trend_label %></span>
+                  </span>
+                <% end %>
               </div>
-              <small class="text-muted">Lowest Ever</small>
+              <div>
+                <div class="pt-stat-label">LOWEST EVER</div>
+                <div class="pt-prod-price" style="color: var(--accent-700);">
+                  <% if lowest %>$<%= sprintf("%.2f", lowest) %><% else %>—<% end %>
+                </div>
+                <% if lowest_store %>
+                  <div class="pt-muted small">@ <%= lowest_store %></div>
+                <% end %>
+              </div>
+            </div>
+
+            <div class="pt-prod-actions">
+              <%= link_to new_product_price_record_path(@product), class: "pt-btn pt-btn-primary pt-btn-block" do %>
+                <span class="pt-btn-icon">+</span> Log a price
+              <% end %>
+              <% if @product.source_url.present? %>
+                <%= button_to fetch_price_product_path(@product), method: :post,
+                      class: "pt-btn pt-btn-secondary pt-btn-block",
+                      data: { turbo_confirm: "Fetch the latest price from the source URL? This may take a few seconds." },
+                      form: { style: "width: 100%;" } do %>
+                  ↻ Fetch latest from source
+                <% end %>
+              <% end %>
+              <div class="pt-prod-actions-row">
+                <%= link_to "Edit", edit_product_path(@product), class: "pt-link-btn" %>
+                <%= link_to "Delete", @product, data: { turbo_method: :delete, turbo_confirm: "Delete this product and all its price records?" }, class: "pt-link-btn pt-link-btn-danger" %>
+              </div>
             </div>
           </div>
         </div>
-        <div class="card-footer d-flex flex-column gap-2">
-          <% if @product.source_url.present? %>
-            <%= button_to "🔄 Fetch latest price", fetch_price_product_path(@product),
-                  method: :post, class: "btn btn-outline-primary btn-sm w-100",
-                  data: { turbo_confirm: "Fetch the latest price from the source URL? This may take a few seconds." } %>
-          <% end %>
-          <%= link_to "✏️ Edit Product", edit_product_path(@product), class: "btn btn-outline-secondary btn-sm" %>
-          <%= link_to "🗑️ Delete Product", @product, data: { turbo_method: :delete, turbo_confirm: "Delete this product and all its price records?" }, class: "btn btn-outline-danger btn-sm" %>
-        </div>
-      </div>
-    </div>
+      </aside>
 
-    <div class="col-md-8">
-      <div class="card shadow-sm">
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-          <h5 class="mb-0">📊 Price History</h5>
-          <%= link_to "+ Add Price", new_product_price_record_path(@product), class: "btn btn-sm btn-warning" %>
-        </div>
-        <div class="card-body p-0">
+      <section class="pt-detail-main">
+        <div class="pt-panel">
+          <div class="pt-panel-head">
+            <div>
+              <div class="pt-panel-eyebrow">▌ HISTORY</div>
+              <h2 class="pt-panel-title">Price chart</h2>
+            </div>
+            <%= link_to new_product_price_record_path(@product), class: "pt-btn pt-btn-primary" do %>
+              <span class="pt-btn-icon">+</span> Add price
+            <% end %>
+          </div>
           <% if @price_records.any? %>
-            <div class="p-3 border-bottom">
+            <div class="pt-chart-wrap" style="padding-bottom: 22px;">
               <%= line_chart @chart_data,
                     height: "260px",
                     thousands: ",",
@@ -91,61 +138,74 @@
                       interaction: { mode: "nearest", intersect: false }
                     } %>
             </div>
-            <% if @lowest_price_record %>
-              <div class="p-3 bg-light border-bottom">
-                <div class="row g-2 align-items-center">
-                  <div class="col">
-                    <small class="text-muted d-block">📍 Lowest Price Point</small>
-                    <strong class="text-danger">
-                      $<%= sprintf("%.2f", @lowest_price_record.price) %>
-                      <span class="text-muted fw-normal">@ <%= @lowest_price_record.store_name %></span>
-                    </strong>
-                    <small class="text-muted d-block">
-                      <%= @lowest_price_record.recorded_at.strftime("%B %d, %Y at %I:%M %p") %>
-                    </small>
-                  </div>
-                </div>
+          <% else %>
+            <div class="pt-empty-filter" style="margin: 0 22px 22px;">
+              <div class="pt-empty-icon">📈</div>
+              <h3>No observations yet</h3>
+              <p>Log the first price to start the history.</p>
+            </div>
+          <% end %>
+        </div>
+
+        <% if @lowest_price_record %>
+          <div class="pt-pin">
+            <div class="pt-pin-icon">◉</div>
+            <div class="pt-pin-body">
+              <div class="pt-stat-label">LOWEST PRICE POINT</div>
+              <div class="pt-pin-line">
+                <span class="pt-mono pt-strong" style="color: var(--accent-700); font-size: 1.5rem;">
+                  $<%= sprintf("%.2f", @lowest_price_record.price) %>
+                </span>
+                <span class="pt-muted">
+                  @ <%= @lowest_price_record.store_name %> · <%= @lowest_price_record.recorded_at.strftime("%b %d, %Y") %>
+                </span>
               </div>
-            <% end %>
-            <div class="table-responsive">
-              <table class="table table-hover mb-0">
-                <thead class="table-dark">
+            </div>
+          </div>
+        <% end %>
+
+        <% if @price_records.any? %>
+          <div class="pt-panel">
+            <div class="pt-panel-head">
+              <div>
+                <div class="pt-panel-eyebrow">▌ LEDGER</div>
+                <h2 class="pt-panel-title">All observations <span class="pt-mono pt-muted small">· <%= @price_records.size %></span></h2>
+              </div>
+            </div>
+            <div class="pt-table-wrap" style="border-radius: 0; border: none; border-top: 1px solid var(--line-2);">
+              <table class="pt-table">
+                <thead>
                   <tr>
-                    <th>Price</th>
+                    <th>#</th>
+                    <th class="pt-th-num">Price</th>
                     <th>Store</th>
                     <th>Source</th>
                     <th>Date</th>
                     <th>Notes</th>
-                    <th>Link</th>
-                    <th>Actions</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  <% @price_records.each do |record| %>
+                  <% total = @price_records.size %>
+                  <% @price_records.each_with_index do |record, i| %>
+                    <% is_lowest = lowest && record.price.to_f == lowest.to_f %>
                     <tr>
-                      <td><span class="badge bg-success fs-6">$<%= sprintf("%.2f", record.price) %></span></td>
-                      <td><strong><%= record.store_name %></strong></td>
-                      <td>
-                        <% if record.source == "scraped" %>
-                          <span class="badge bg-info text-dark" title="Fetched automatically from the source URL">auto</span>
-                        <% else %>
-                          <span class="badge bg-secondary" title="Entered manually by you">manual</span>
-                        <% end %>
+                      <td class="pt-mono pt-muted"><%= sprintf("%03d", total - i) %></td>
+                      <td class="pt-th-num pt-mono pt-strong" style="<%= 'color: var(--accent-700);' if is_lowest %>">
+                        $<%= sprintf("%.2f", record.price) %>
                       </td>
-                      <td><small><%= record.recorded_at.strftime("%b %d, %Y") %></small></td>
-                      <td><small class="text-muted"><%= record.notes %></small></td>
+                      <td><%= record.store_name %></td>
                       <td>
-                        <% if record.url.present? %>
-                          <%= link_to "🛒 Buy", record.url, target: "_blank", class: "btn btn-sm btn-outline-success" %>
-                        <% else %>
-                          <span class="text-muted">—</span>
-                        <% end %>
+                        <% src_class = record.source == "scraped" ? "pt-source-auto" : "pt-source-manual" %>
+                        <span class="pt-source <%= src_class %>"><%= record.source == "scraped" ? "auto" : "manual" %></span>
                       </td>
+                      <td class="pt-mono pt-muted"><%= record.recorded_at.strftime("%b %d") %></td>
+                      <td class="pt-muted small"><%= record.notes.presence || "—" %></td>
                       <td>
-                        <div class="btn-group btn-group-sm">
-                          <%= link_to "View", price_record_path(record), class: "btn btn-outline-primary" %>
-                          <%= link_to "Edit", edit_price_record_path(record), class: "btn btn-outline-secondary" %>
-                          <%= link_to "Del", record, data: { turbo_method: :delete, turbo_confirm: "Delete this price record?" }, class: "btn btn-outline-danger" %>
+                        <div class="pt-row-actions">
+                          <%= link_to "View", price_record_path(record), class: "pt-icon-btn" %>
+                          <%= link_to "Edit", edit_price_record_path(record), class: "pt-icon-btn" %>
+                          <%= link_to "Del", price_record_path(record), data: { turbo_method: :delete, turbo_confirm: "Delete this price record?" }, class: "pt-icon-btn pt-icon-btn-danger" %>
                         </div>
                       </td>
                     </tr>
@@ -153,14 +213,9 @@
                 </tbody>
               </table>
             </div>
-          <% else %>
-            <div class="text-center py-5 text-muted">
-              <p>No price records yet.</p>
-              <%= link_to "+ Add First Price", new_product_price_record_path(@product), class: "btn btn-primary" %>
-            </div>
-          <% end %>
-        </div>
-      </div>
+          </div>
+        <% end %>
+      </section>
     </div>
   </div>
-</div>
+</main>

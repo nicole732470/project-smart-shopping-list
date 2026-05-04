@@ -1,114 +1,191 @@
-<div class="hero-section">
-  <div class="container">
-    <h1 class="display-5 fw-bold">📦 Products</h1>
-    <p class="lead">Track price changes across stores and find the best time to buy</p>
-
-    <%= form_with url: products_path, method: :get, class: "row g-2 mt-3 align-items-end" do |f| %>
-      <div class="col-md-4">
-        <%= f.label :search, "Search", class: "form-label text-white-50 small mb-1" %>
-        <%= f.text_field :search, value: params[:search], placeholder: "Name, category, or description...", class: "form-control" %>
+<main class="pt-page">
+  <section class="pt-hero">
+    <div class="container-xl">
+      <div class="pt-hero-grid">
+        <div>
+          <div class="pt-eyebrow">Your products</div>
+          <h1 class="pt-h1">Products you're watching</h1>
+          <p class="pt-lede">
+            Paste a link from Amazon, Target, Walmart, Best Buy or Lululemon
+            and we'll log the title, image, and current price, then watch
+            for drops across stores.
+          </p>
+        </div>
+        <aside class="pt-hero-cta">
+          <%= link_to new_product_path, class: "pt-hero-add" do %>
+            <span class="pt-hero-add-plus" aria-hidden="true">+</span>
+            <span class="pt-hero-add-body">
+              <span class="pt-hero-add-eyebrow">Start tracking</span>
+              <span class="pt-hero-add-title">Add a product</span>
+              <span class="pt-hero-add-sub">Paste any product link, we'll fetch the price and watch for drops.</span>
+            </span>
+            <span class="pt-hero-add-arrow" aria-hidden="true">&rarr;</span>
+          <% end %>
+          <div class="pt-hero-meta">
+            <span class="pt-hero-meta-dot"></span>
+            <span><strong><%= @products.size %></strong> <%= "product".pluralize(@products.size) %> tracked</span>
+          </div>
+        </aside>
       </div>
+    </div>
+  </section>
 
-      <div class="col-md-3">
-        <%= f.label :category, "Category", class: "form-label text-white-50 small mb-1" %>
-        <%= f.select :category,
-              options_for_select([ [ "All categories", "" ] ] + @categories, params[:category]),
-              {},
-              class: "form-select" %>
-      </div>
-
-      <div class="col-md-3">
-        <%= f.label :sort, "Sort by", class: "form-label text-white-50 small mb-1" %>
-        <%= f.select :sort,
-              options_for_select(
-                [
-                  [ "Newest first", "newest" ],
-                  [ "Oldest first", "oldest" ],
-                  [ "Name (A→Z)",   "name_asc" ],
-                  [ "Name (Z→A)",   "name_desc" ],
-                  [ "Price (low→high)",  "price_asc" ],
-                  [ "Price (high→low)",  "price_desc" ]
-                ],
-                params[:sort].presence || "newest"
-              ),
-              {},
-              class: "form-select" %>
-      </div>
-
-      <div class="col-md-2 d-flex gap-2">
-        <%= f.submit "Apply", class: "btn btn-warning flex-grow-1" %>
-        <%= link_to "Clear", products_path, class: "btn btn-outline-light" %>
-      </div>
-    <% end %>
-  </div>
-</div>
-
-<div class="container">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <span class="text-muted"><%= pluralize(@products.size, "product") %></span>
-    <%= link_to "+ Add Product", new_product_path, class: "btn btn-primary" %>
-  </div>
-
-  <% if @products.any? %>
-    <div class="row row-cols-1 row-cols-md-3 g-4 mb-5">
-      <% @products.each do |product| %>
-        <div class="col">
-          <div class="card h-100 shadow-sm">
-            <% if product.image_url.present? %>
-              <%= image_tag product.image_url, class: "card-img-top", style: "height: 200px; object-fit: cover;" %>
-            <% else %>
-              <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 200px;">
-                <span class="fs-1">📦</span>
-              </div>
+  <%= form_with url: products_path, method: :get, local: true do |f| %>
+    <section class="pt-toolbar-wrap">
+      <div class="container-xl">
+        <div class="pt-toolbar">
+          <div class="pt-search">
+            <span class="pt-search-icon">⌕</span>
+            <%= f.text_field :search,
+                  value: params[:search],
+                  placeholder: "Search by name, category, description…",
+                  class: "pt-search-input" %>
+            <% if params[:search].present? %>
+              <%= link_to "×", products_path(params.permit(:category, :sort).to_h), class: "pt-search-clear", "aria-label": "Clear search" %>
             <% end %>
-            <div class="card-body">
-              <span class="badge bg-secondary mb-1"><%= product.category %></span>
-              <h5 class="card-title"><%= product.name %></h5>
-              <p class="card-text text-muted small"><%= truncate(product.description, length: 80) %></p>
-              <div class="d-flex justify-content-between align-items-center mt-2">
-                <div>
-                  <% if product.latest_price %>
-                    <span class="badge bg-success fs-6">$<%= sprintf("%.2f", product.latest_price) %></span>
-                    <small class="text-muted d-block">@ <%= product.latest_store %></small>
-                    <small class="d-block mt-1" title="<%= product.price_trend_description %>">
-                      <span class="fs-5"><%= product.price_trend_emoji %></span>
-                    </small>
-                  <% else %>
-                    <span class="text-muted small">No price yet</span>
+          </div>
+
+          <div class="pt-filter-group">
+            <label class="pt-filter-label" for="category">Category</label>
+            <%= f.select :category,
+                  options_for_select([ [ "All", "" ] ] + @categories, params[:category]),
+                  {}, class: "pt-select" %>
+          </div>
+
+          <div class="pt-filter-group">
+            <label class="pt-filter-label" for="sort">Sort</label>
+            <%= f.select :sort,
+                  options_for_select(
+                    [
+                      [ "Newest first", "newest" ],
+                      [ "Oldest first", "oldest" ],
+                      [ "Name · A→Z",   "name_asc" ],
+                      [ "Name · Z→A",   "name_desc" ],
+                      [ "Price · low → high",  "price_asc" ],
+                      [ "Price · high → low",  "price_desc" ]
+                    ],
+                    params[:sort].presence || "newest"
+                  ),
+                  {}, class: "pt-select" %>
+          </div>
+
+          <%= f.submit "Apply", class: "pt-btn pt-btn-secondary" %>
+
+          <% if params[:search].present? || params[:category].present? || (params[:sort].present? && params[:sort] != "newest") %>
+            <%= link_to "Clear filters", products_path, class: "pt-link-btn pt-link-btn-strong" %>
+          <% end %>
+        </div>
+
+        <div class="pt-result-row">
+          <span class="pt-result-count">
+            Showing <%= @products.size %> of <%= Current.user.products.count %> products
+          </span>
+        </div>
+      </div>
+    </section>
+  <% end %>
+
+  <section class="container-xl pt-content">
+    <% if @products.any? %>
+      <div class="pt-grid">
+        <% @products.each do |product| %>
+          <% latest = product.latest_price %>
+          <% lowest = product.lowest_price %>
+          <% latest_store = product.latest_store %>
+          <% trend = product.respond_to?(:price_trend) ? product.price_trend : nil %>
+          <% trend_label = case trend
+                           when 1 then "Up"
+                           when -1 then "Down"
+                           else "Stable"
+                           end %>
+          <% trend_color, trend_bg = case trend
+                                     when 1 then [ "var(--orange)", "#fff3e6" ]
+                                     when -1 then [ "var(--green)", "var(--green-50)" ]
+                                     else [ "var(--muted-2)", "var(--bg-2)" ]
+                                     end %>
+          <article class="pt-card">
+            <%= link_to product_path(product), class: "pt-card-media", style: "text-decoration: none; color: inherit;" do %>
+              <% if product.image_url.present? %>
+                <%= image_tag product.image_url, alt: product.name %>
+              <% else %>
+                <div style="width:100%;height:100%;display:grid;place-items:center;font-size:42px;color:var(--muted);">📦</div>
+              <% end %>
+              <div class="pt-card-media-shade"></div>
+              <span class="pt-tag pt-tag-overlay"><%= product.category %></span>
+              <% if trend %>
+                <span class="pt-trend pt-trend-float" style="color: <%= trend_color %>; background: <%= trend_bg %>;">
+                  <span><%= trend_label %></span>
+                </span>
+              <% end %>
+              <% if latest && lowest && latest > lowest %>
+                <div class="pt-card-savings-chip">
+                  <span class="pt-card-savings-label">SAVE</span>
+                  <span class="pt-card-savings-num">$<%= sprintf("%.2f", latest - lowest) %></span>
+                </div>
+              <% end %>
+            <% end %>
+            <div class="pt-card-body">
+              <% if product.source_url.present? %>
+                <div class="pt-card-host"><%= URI.parse(product.source_url).host.to_s.sub(/\Awww\./, "") rescue "" %></div>
+              <% end %>
+              <h3 class="pt-card-title">
+                <%= link_to product.name, product, style: "text-decoration: none; color: inherit;" %>
+              </h3>
+
+              <div class="pt-card-price-row">
+                <div class="pt-card-price-block">
+                  <div class="pt-card-price">
+                    <% if latest %>$<%= sprintf("%.2f", latest) %><% else %>—<% end %>
+                  </div>
+                  <% if latest_store %>
+                    <div class="pt-card-store pt-muted">at <%= latest_store %></div>
                   <% end %>
                 </div>
-                <% if product.lowest_price %>
-                  <div class="text-end">
-                    <small class="text-muted d-block">Lowest</small>
-                    <span class="text-danger fw-bold">$<%= sprintf("%.2f", product.lowest_price) %></span>
-                  </div>
-                <% end %>
+              </div>
+
+              <% if lowest %>
+                <div class="pt-card-low">
+                  <span class="pt-card-low-dot"></span>
+                  <span class="pt-card-low-label">Lowest seen</span>
+                  <span class="pt-card-low-num">$<%= sprintf("%.2f", lowest) %></span>
+                </div>
+              <% end %>
+            </div>
+            <div class="pt-card-foot">
+              <%= link_to "View details →", product, class: "pt-link-btn pt-link-btn-strong" %>
+              <div class="pt-row-actions">
+                <%= link_to "Edit", edit_product_path(product), class: "pt-icon-btn" %>
+                <%= link_to "Del", product_path(product), data: { turbo_method: :delete, turbo_confirm: "Delete \"#{product.name}\"?" }, class: "pt-icon-btn pt-icon-btn-danger" %>
               </div>
             </div>
-            <div class="card-footer d-flex gap-2">
-              <%= link_to "View", product, class: "btn btn-primary btn-sm flex-grow-1" %>
-              <%= link_to "Edit", edit_product_path(product), class: "btn btn-outline-secondary btn-sm" %>
-              <%= link_to "Delete", product, data: { turbo_method: :delete, turbo_confirm: "Delete this product?" }, class: "btn btn-outline-danger btn-sm" %>
-            </div>
-          </div>
+          </article>
+        <% end %>
+      </div>
+    <% elsif params[:search].present? || params[:category].present? %>
+      <div class="pt-empty-filter">
+        <div class="pt-empty-icon">⌕</div>
+        <h3>No products match.</h3>
+        <p>Try a different search term or clear your filters.</p>
+        <%= link_to "Clear filters", products_path, class: "pt-btn pt-btn-secondary" %>
+      </div>
+    <% else %>
+      <div class="pt-empty">
+        <div class="pt-empty-graphic">
+          <svg viewBox="0 0 220 130" width="220" height="130">
+            <rect x="20" y="10" width="180" height="110" rx="6" fill="none" stroke="var(--ink)" stroke-opacity="0.15" stroke-dasharray="4 4"/>
+            <line x1="40" y1="40" x2="180" y2="40" stroke="var(--ink)" stroke-opacity="0.1"/>
+            <line x1="40" y1="60" x2="180" y2="60" stroke="var(--ink)" stroke-opacity="0.1"/>
+            <line x1="40" y1="80" x2="140" y2="80" stroke="var(--ink)" stroke-opacity="0.1"/>
+            <circle cx="170" cy="100" r="14" fill="var(--accent)"/>
+            <text x="170" y="105" text-anchor="middle" font-size="16" font-weight="600" fill="white">+</text>
+          </svg>
         </div>
-      <% end %>
-    </div>
-  <% elsif params[:search].present? || params[:category].present? %>
-    <div class="text-center py-5 text-muted bg-light rounded mb-5">
-      <p class="fs-5 mb-1">No products match your filters.</p>
-      <p class="mb-3">Try a different search term or clear the filters.</p>
-      <%= link_to "Clear filters", products_path, class: "btn btn-outline-secondary" %>
-    </div>
-  <% else %>
-    <div class="text-center py-5 mb-5 bg-light rounded">
-      <div class="display-1 mb-2">🛒</div>
-      <h3 class="fw-bold">Your shopping list is empty</h3>
-      <p class="text-muted mb-4">
-        Paste a product link from Amazon, Target, Walmart, Best Buy, Lululemon —
-        we'll grab the title, image, and current price for you.
-      </p>
-      <%= link_to "+ Add your first product", new_product_path, class: "btn btn-primary btn-lg" %>
-    </div>
-  <% end %>
-</div>
+        <h2>No products yet</h2>
+        <p>Start by pasting a product link, Amazon, Target, Walmart, Best Buy or Lululemon, and we'll do the rest.</p>
+        <%= link_to new_product_path, class: "pt-btn pt-btn-primary pt-btn-lg" do %>
+          <span class="pt-btn-icon">+</span> Add your first product
+        <% end %>
+      </div>
+    <% end %>
+  </section>
+</main>

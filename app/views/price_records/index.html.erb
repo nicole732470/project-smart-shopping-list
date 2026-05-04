@@ -1,65 +1,105 @@
-<div class="hero-section">
-  <div class="container">
-    <h1 class="display-5 fw-bold">📈 All Price Records</h1>
-    <p class="lead">Complete price history across all products and stores</p>
-  </div>
-</div>
-
-<div class="container">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <span class="text-muted"><%= @price_records.count %> records total</span>
-    <%= link_to "← All Products", products_path, class: "btn btn-outline-secondary" %>
-  </div>
-
-  <% if @price_records.any? %>
-  <div class="table-responsive">
-    <table class="table table-hover table-bordered align-middle">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Product</th>
-          <th>Price</th>
-          <th>Store</th>
-          <th>Date</th>
-          <th>Link</th>
-          <th>Notes</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% @price_records.each do |record| %>
-          <tr>
-            <td><%= record.id %></td>
-            <td><%= link_to record.product.name, record.product, class: "text-decoration-none fw-semibold" %></td>
-            <td><span class="badge bg-success fs-6">$<%= sprintf("%.2f", record.price) %></span></td>
-            <td><strong><%= record.store_name %></strong></td>
-            <td><%= record.recorded_at.strftime("%b %d, %Y") %></td>
-            <td>
-              <% if record.url.present? %>
-                <%= link_to "🛒 Buy", record.url, target: "_blank", class: "btn btn-sm btn-outline-success" %>
-              <% else %>
-                <span class="text-muted">—</span>
-              <% end %>
-            </td>
-            <td><small class="text-muted"><%= record.notes %></small></td>
-            <td>
-              <div class="btn-group btn-group-sm">
-                <%= link_to "View", price_record_path(record), class: "btn btn-outline-primary" %>
-                <%= link_to "Edit", edit_price_record_path(record), class: "btn btn-outline-secondary" %>
-                <%= link_to "Delete", record, data: { turbo_method: :delete, turbo_confirm: "Delete this record?" }, class: "btn btn-outline-danger" %>
-              </div>
-            </td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
-  </div>
-  <% else %>
-    <div class="text-center py-5 mb-5 bg-light rounded">
-      <div class="display-1 mb-2">📈</div>
-      <h3 class="fw-bold">No price records yet</h3>
-      <p class="text-muted mb-4">Add a product, then log the price you saw to start a history.</p>
-      <%= link_to "+ Add Product", new_product_path, class: "btn btn-primary btn-lg" %>
+<main class="pt-page">
+  <section class="pt-hero">
+    <div class="container-xl">
+      <div class="pt-hero-grid">
+        <div>
+          <div class="pt-eyebrow">All observations</div>
+          <h1 class="pt-h1">Your full price ledger</h1>
+          <p class="pt-lede">Every price you've recorded across every product, in chronological order.</p>
+        </div>
+        <aside class="pt-hero-cta">
+          <%= link_to products_path, class: "pt-hero-add" do %>
+            <span class="pt-hero-add-plus" aria-hidden="true">→</span>
+            <span class="pt-hero-add-body">
+              <span class="pt-hero-add-eyebrow">Browse products</span>
+              <span class="pt-hero-add-title">Open a product to log a price</span>
+              <span class="pt-hero-add-sub">Pick a product first, then add an observation to its history.</span>
+            </span>
+            <span class="pt-hero-add-arrow" aria-hidden="true">→</span>
+          <% end %>
+          <div class="pt-hero-meta">
+            <span class="pt-hero-meta-dot"></span>
+            <span><strong><%= @price_records.size %></strong> total observations</span>
+          </div>
+        </aside>
+      </div>
     </div>
-  <% end %>
-</div>
+  </section>
+
+  <section class="container-xl pt-content">
+    <% if @price_records.any? %>
+      <div class="pt-table-wrap">
+        <table class="pt-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Product</th>
+              <th class="pt-th-num">Price</th>
+              <th>Store</th>
+              <th>Source</th>
+              <th>Date</th>
+              <th>Notes</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% total = @price_records.size %>
+            <% @price_records.each_with_index do |record, i| %>
+              <tr>
+                <td class="pt-mono pt-muted"><%= sprintf("%03d", total - i) %></td>
+                <td>
+                  <div class="pt-table-prod">
+                    <% if record.product.image_url.present? %>
+                      <%= image_tag record.product.image_url, alt: "" %>
+                    <% else %>
+                      <div style="width:40px;height:40px;border-radius:8px;background:var(--bg-2);display:grid;place-items:center;">📦</div>
+                    <% end %>
+                    <div>
+                      <div class="pt-table-name"><%= link_to record.product.name, record.product, class: "pt-strong", style: "text-decoration: none; color: inherit;" %></div>
+                      <% if record.product.source_url.present? %>
+                        <div class="pt-table-host"><%= URI.parse(record.product.source_url).host.to_s.sub(/\Awww\./, "") rescue "" %></div>
+                      <% end %>
+                    </div>
+                  </div>
+                </td>
+                <td class="pt-th-num pt-mono pt-strong">$<%= sprintf("%.2f", record.price) %></td>
+                <td><%= record.store_name %></td>
+                <td>
+                  <% src_class = record.source == "scraped" ? "pt-source-auto" : "pt-source-manual" %>
+                  <span class="pt-source <%= src_class %>"><%= record.source == "scraped" ? "auto" : "manual" %></span>
+                </td>
+                <td class="pt-mono pt-muted"><%= record.recorded_at.strftime("%b %d, %Y") %></td>
+                <td class="pt-muted small"><%= record.notes.presence || "—" %></td>
+                <td>
+                  <div class="pt-row-actions">
+                    <%= link_to "View", price_record_path(record), class: "pt-icon-btn" %>
+                    <%= link_to "Edit", edit_price_record_path(record), class: "pt-icon-btn" %>
+                    <%= link_to "Del", price_record_path(record), data: { turbo_method: :delete, turbo_confirm: "Delete this record?" }, class: "pt-icon-btn pt-icon-btn-danger" %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <div class="pt-empty">
+        <div class="pt-empty-graphic">
+          <svg viewBox="0 0 220 130" width="220" height="130">
+            <rect x="20" y="10" width="180" height="110" rx="6" fill="none" stroke="var(--ink)" stroke-opacity="0.15" stroke-dasharray="4 4"/>
+            <line x1="40" y1="40" x2="180" y2="40" stroke="var(--ink)" stroke-opacity="0.1"/>
+            <line x1="40" y1="60" x2="180" y2="60" stroke="var(--ink)" stroke-opacity="0.1"/>
+            <line x1="40" y1="80" x2="140" y2="80" stroke="var(--ink)" stroke-opacity="0.1"/>
+            <circle cx="170" cy="100" r="14" fill="var(--accent)"/>
+            <text x="170" y="105" text-anchor="middle" font-size="16" font-weight="600" fill="white">+</text>
+          </svg>
+        </div>
+        <h2>No price records yet</h2>
+        <p>Add a product and log the price you saw to start a history.</p>
+        <%= link_to new_product_path, class: "pt-btn pt-btn-primary pt-btn-lg" do %>
+          <span class="pt-btn-icon">+</span> Add a product
+        <% end %>
+      </div>
+    <% end %>
+  </section>
+</main>

@@ -1,11 +1,11 @@
-<div class="container mt-4" style="max-width: 600px;">
-  <h2>➕ Add Product</h2>
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <%= render "form", product: @product, manual: @manual %>
-    </div>
+<main class="pt-page">
+  <div class="container-xl pt-content pt-narrow">
+    <header class="pt-form-head">
+      <div class="pt-eyebrow">Add a product</div>
+      <h1 class="pt-h1">Track a new product</h1>
+      <p class="pt-lede">Paste a product link and we'll fetch the title, image, and current price. If the site isn't supported, fill in the details by hand.</p>
+    </header>
+
+    <%= render "form", product: @product, manual: @manual %>
   </div>
-  <div class="mt-2">
-    <%= link_to "← Back to Products", products_path, class: "btn btn-outline-secondary" %>
-  </div>
-</div>
+</main>
