@@ -152,10 +152,17 @@
               <% end %>
             </div>
             <div class="pt-card-foot">
-              <%= link_to "View details →", product, class: "pt-link-btn pt-link-btn-strong" %>
+              <%= link_to "View details →", product,
+                    class: "pt-link-btn pt-link-btn-strong",
+                    aria: { label: "View details for #{product.name}" } %>
               <div class="pt-row-actions">
-                <%= link_to "Edit", edit_product_path(product), class: "pt-icon-btn" %>
-                <%= link_to "Del", product_path(product), data: { turbo_method: :delete, turbo_confirm: "Delete \"#{product.name}\"?" }, class: "pt-icon-btn pt-icon-btn-danger" %>
+                <%= link_to "Edit", edit_product_path(product),
+                      class: "pt-icon-btn",
+                      aria: { label: "Edit #{product.name}" } %>
+                <%= link_to "Del", product_path(product),
+                      data: { turbo_method: :delete, turbo_confirm: "Delete \"#{product.name}\"?" },
+                      class: "pt-icon-btn pt-icon-btn-danger",
+                      aria: { label: "Delete #{product.name}" } %>
               </div>
             </div>
           </article>
