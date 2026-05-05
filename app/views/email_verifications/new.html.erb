@@ -1,0 +1,68 @@
+<div class="pt-auth">
+  <div class="pt-auth-grid">
+    <aside class="pt-auth-side">
+      <div class="pt-auth-mark">P/T</div>
+      <div class="pt-auth-side-eyebrow">Verify email</div>
+      <h1 class="pt-auth-side-title">Enter the code we sent you.</h1>
+      <p class="pt-auth-side-lede">
+        Verification keeps accounts tied to real inboxes before price tracking begins.
+      </p>
+      <div class="pt-auth-side-spec">
+        <div class="pt-auth-side-row">
+          <span class="pt-mono">01</span>
+          <span>Create your account.</span>
+        </div>
+        <div class="pt-auth-side-row">
+          <span class="pt-mono">02</span>
+          <span>Check your inbox for a six-digit code.</span>
+        </div>
+        <div class="pt-auth-side-row">
+          <span class="pt-mono">03</span>
+          <span>Verify once, then start tracking prices.</span>
+        </div>
+      </div>
+    </aside>
+
+    <div class="pt-auth-form-wrap">
+      <%= form_with url: email_verification_path, local: true, class: "pt-auth-form" do |form| %>
+        <div class="pt-eyebrow">Email verification</div>
+        <h2 class="pt-h1">Confirm your account</h2>
+
+        <% if flash[:alert].present? %>
+          <div class="pt-flash" role="alert" style="border-left: 3px solid var(--red); margin: 18px 0;">
+            <span class="pt-flash-icon" style="background: var(--red);">!</span>
+            <div class="pt-flash-body">
+              <div class="pt-flash-label">TRY AGAIN</div>
+              <div class="pt-flash-msg"><%= flash[:alert] %></div>
+            </div>
+          </div>
+        <% end %>
+
+        <div class="pt-form" style="margin-top: 24px;">
+          <div class="pt-field">
+            <label class="pt-field-label" for="email_address">Email address</label>
+            <%= form.email_field :email_address,
+                  required: true, autofocus: @email_address.blank?,
+                  autocomplete: "email",
+                  value: @email_address,
+                  class: "pt-input" %>
+          </div>
+          <div class="pt-field">
+            <label class="pt-field-label" for="code">Verification code</label>
+            <%= form.text_field :code,
+                  required: true, autofocus: @email_address.present?,
+                  inputmode: "numeric", pattern: "[0-9]{6}",
+                  maxlength: 6, autocomplete: "one-time-code",
+                  class: "pt-input" %>
+          </div>
+
+          <%= form.submit "Verify email", class: "pt-btn pt-btn-primary pt-btn-lg pt-btn-block" %>
+        </div>
+
+        <div class="pt-auth-foot">
+          Need a new code? <%= link_to "Sign in again to resend", new_session_path, class: "pt-link pt-link-strong" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

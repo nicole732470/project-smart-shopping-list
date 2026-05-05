@@ -1,0 +1,7 @@
+Hello,
+
+Use this code to verify your PriceTracker account:
+
+<%= @code %>
+
+This code expires in <%= distance_of_time_in_words(0, User::EMAIL_VERIFICATION_CODE_TTL) %>.

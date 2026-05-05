@@ -11,17 +11,23 @@ class AuthenticationComprehensiveTest < ActionDispatch::IntegrationTest
   # --- Session Lifecycle ---
 
   test "user can sign up with valid email and password" do
-    post registration_path, params: {
-      user: {
-        email_address: "newuser@example.com",
-        password: "SecurePassword123!",
-        password_confirmation: "SecurePassword123!"
+    assert_enqueued_emails 1 do
+      post registration_path, params: {
+        user: {
+          email_address: "newuser@example.com",
+          password: "SecurePassword123!",
+          password_confirmation: "SecurePassword123!"
+        }
       }
-    }
+    end
 
-    assert_redirected_to root_path
-    assert User.exists?(email_address: "newuser@example.com")
-    assert_match(/welcome/i, flash[:notice])
+    assert_redirected_to new_email_verification_path(email_address: "newuser@example.com")
+    user = User.find_by(email_address: "newuser@example.com")
+    assert user.present?
+    assert_not user.email_verified?
+    assert user.email_verification_code_digest.present?
+    assert_nil cookies[:session_id]
+    assert_match(/verification code/i, flash[:notice])
   end
 
   test "signup fails with duplicate email" do

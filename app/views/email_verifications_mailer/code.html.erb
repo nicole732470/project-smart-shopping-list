@@ -1,0 +1,7 @@
+<p>Hello,</p>
+
+<p>Use this code to verify your PriceTracker account:</p>
+
+<p style="font-size: 28px; font-weight: 700; letter-spacing: 0.18em;"><%= @code %></p>
+
+<p>This code expires in <%= distance_of_time_in_words(0, User::EMAIL_VERIFICATION_CODE_TTL) %>.</p>

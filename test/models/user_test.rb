@@ -41,4 +41,32 @@ class UserTest < ActiveSupport::TestCase
     user = User.new(valid_attributes.merge(password: "", password_confirmation: ""))
     assert_not user.valid?
   end
+
+  test "issues and verifies email verification code" do
+    user = User.create!(valid_attributes.merge(email_address: "verify@example.com"))
+    code = user.issue_email_verification_code!
+
+    assert_match(/\A\d{6}\z/, code)
+    assert user.verify_email_code?(code)
+    assert_not user.verify_email_code?("000000")
+  end
+
+  test "email verification code expires" do
+    user = User.create!(valid_attributes.merge(email_address: "expired@example.com"))
+    code = user.issue_email_verification_code!
+    user.update!(email_verification_sent_at: 20.minutes.ago)
+
+    assert_not user.verify_email_code?(code)
+  end
+
+  test "mark_email_verified clears pending code" do
+    user = User.create!(valid_attributes.merge(email_address: "marked@example.com"))
+    user.issue_email_verification_code!
+
+    user.mark_email_verified!
+
+    assert user.email_verified?
+    assert_nil user.email_verification_code_digest
+    assert_nil user.email_verification_sent_at
+  end
 end
