@@ -1,7 +1,6 @@
 Rails.application.routes.draw do
   resource :session
   resource :registration, only: [ :new, :create ]
-  resource :email_verification, only: [ :new, :create ]
   resources :passwords, param: :token
   root "products#index"
   resources :products do
