@@ -19,7 +19,7 @@
         <nav class="pt-nav">
           <%= link_to "Products", products_path, class: "pt-nav-link #{'is-active' if controller_name == 'products'}" %>
           <%= link_to "Price Records", price_records_path, class: "pt-nav-link #{'is-active' if controller_name == 'price_records'}" %>
-          <%= link_to "Recommendations", recommendations_path, class: "pt-nav-link #{'is-active' if controller_name == 'recommendations'}" %>
+          <%= link_to "Budget Planner", budget_planner_path, class: "pt-nav-link #{'is-active' if controller_name == 'budget_planner'}" %>
         </nav>
 
         <div class="pt-header-right">
@@ -55,7 +55,7 @@
             <div class="pt-footer-h">Product</div>
             <%= link_to "Products", products_path %>
             <%= link_to "Price Records", price_records_path %>
-            <%= link_to "Recommendations", recommendations_path %>
+            <%= link_to "Budget Planner", budget_planner_path %>
             <% if authenticated? %><%= link_to "+ Add a product", new_product_path %><% end %>
           </div>
           <div>

@@ -1,0 +1,166 @@
+<main class="pt-page">
+  <section class="pt-hero">
+    <div class="container-xl">
+      <div class="pt-hero-grid">
+        <div>
+          <div class="pt-eyebrow">Budget planner</div>
+          <h1 class="pt-h1">Shop smarter, spend less</h1>
+          <p class="pt-lede">
+            Set a spending limit and instantly see which products on your
+            watchlist are within reach — priced at the lowest we've ever
+            recorded for each one.
+          </p>
+        </div>
+        <aside class="pt-hero-cta">
+          <%= form_with url: budget_planner_path, method: :get, local: true do |f| %>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <label class="pt-filter-label" for="budget">Spending limit ($)</label>
+              <%= f.number_field :budget,
+                    value: @budget,
+                    min: 0,
+                    step: 0.01,
+                    placeholder: "e.g. 150.00",
+                    class: "pt-search-input",
+                    style: "width:100%;",
+                    id: "budget" %>
+              <%= f.submit "See what fits", class: "pt-btn pt-btn-primary pt-btn-block" %>
+            </div>
+          <% end %>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="container-xl pt-content">
+
+    <% if @budget.nil? %>
+      <div class="pt-empty">
+        <div class="pt-empty-graphic">
+          <svg viewBox="0 0 220 130" width="220" height="130">
+            <rect x="20" y="10" width="180" height="110" rx="6" fill="none" stroke="var(--ink)" stroke-opacity="0.15" stroke-dasharray="4 4"/>
+            <text x="110" y="80" text-anchor="middle" font-size="48" fill="var(--accent)" opacity="0.4">$</text>
+          </svg>
+        </div>
+        <h2>Set a spending limit to get started</h2>
+        <p>We'll match it against the lowest price we've recorded for each product on your watchlist.</p>
+      </div>
+
+    <% elsif @affordable.empty? && @over_budget.empty? %>
+      <div class="pt-empty">
+        <div class="pt-empty-icon">📦</div>
+        <h3>No price data yet.</h3>
+        <p>Start tracking products and logging prices — then come back to see what fits your budget.</p>
+        <%= link_to "+ Add a product", new_product_path, class: "pt-btn pt-btn-primary" %>
+      </div>
+
+    <% else %>
+
+      <%# Budget summary bar %>
+      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:20px 24px;margin-bottom:32px;display:flex;flex-wrap:wrap;gap:24px;align-items:center;">
+        <div style="flex:1;min-width:140px;">
+          <div style="font-size:12px;color:var(--muted-2);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Spending limit</div>
+          <div style="font-size:1.6rem;font-weight:700;">$<%= sprintf("%.2f", @budget) %></div>
+        </div>
+        <div style="flex:1;min-width:140px;">
+          <div style="font-size:12px;color:var(--muted-2);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Cost to buy all in-range items</div>
+          <div style="font-size:1.6rem;font-weight:700;color:var(--green);">$<%= sprintf("%.2f", @total_if_all) %></div>
+        </div>
+        <div style="flex:1;min-width:140px;">
+          <div style="font-size:12px;color:var(--muted-2);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Remaining</div>
+          <div style="font-size:1.6rem;font-weight:700;color:<%= @remaining >= 0 ? "var(--green)" : "var(--orange)" %>;">
+            <%= @remaining >= 0 ? "+$#{sprintf("%.2f", @remaining)}" : "-$#{sprintf("%.2f", @remaining.abs)}" %>
+          </div>
+        </div>
+        <div style="flex:1;min-width:140px;">
+          <div style="font-size:12px;color:var(--muted-2);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Products in range</div>
+          <div style="font-size:1.6rem;font-weight:700;"><%= @affordable.size %> of <%= @affordable.size + @over_budget.size %></div>
+        </div>
+      </div>
+
+      <%# Affordable items %>
+      <% if @affordable.any? %>
+        <h2 style="font-size:1.1rem;font-weight:600;margin-bottom:16px;">
+          Ready to buy
+          <span style="font-size:0.9rem;font-weight:400;color:var(--muted-2);margin-left:6px;"><%= @affordable.size %> <%= "product".pluralize(@affordable.size) %> at or under your limit</span>
+        </h2>
+        <div class="pt-grid" style="margin-bottom:40px;">
+          <% @affordable.each do |product| %>
+            <% lowest = product.lowest_price_seen.to_f %>
+            <article class="pt-card" style="border:2px solid var(--green);">
+              <%= link_to product_path(product), class: "pt-card-media", style: "text-decoration:none;color:inherit;" do %>
+                <% if product.image_url.present? %>
+                  <%= image_tag product.image_url, alt: product.name %>
+                <% else %>
+                  <div style="width:100%;height:100%;display:grid;place-items:center;font-size:40px;color:var(--muted);">📦</div>
+                <% end %>
+                <div class="pt-card-media-shade"></div>
+                <span class="pt-tag pt-tag-overlay"><%= product.category %></span>
+              <% end %>
+              <div class="pt-card-body">
+                <h3 class="pt-card-title">
+                  <%= link_to product.name, product, style: "text-decoration:none;color:inherit;" %>
+                </h3>
+                <div class="pt-card-price-row">
+                  <div class="pt-card-price" style="color:var(--green);">
+                    $<%= sprintf("%.2f", lowest) %>
+                  </div>
+                </div>
+                <div class="pt-card-low">
+                  <span class="pt-card-low-dot" style="background:var(--green);"></span>
+                  <span class="pt-card-low-label">You'd still have</span>
+                  <span class="pt-card-low-num" style="color:var(--green);">$<%= sprintf("%.2f", @budget - lowest) %></span>
+                </div>
+              </div>
+              <div class="pt-card-foot">
+                <%= link_to "View details →", product, class: "pt-link-btn pt-link-btn-strong" %>
+              </div>
+            </article>
+          <% end %>
+        </div>
+      <% end %>
+
+      <%# Over budget items %>
+      <% if @over_budget.any? %>
+        <h2 style="font-size:1.1rem;font-weight:600;margin-bottom:16px;color:var(--muted-2);">
+          Not quite there yet
+          <span style="font-size:0.9rem;font-weight:400;margin-left:6px;"><%= @over_budget.size %> <%= "product".pluralize(@over_budget.size) %> above your limit</span>
+        </h2>
+        <div class="pt-grid">
+          <% @over_budget.each do |product| %>
+            <% lowest = product.lowest_price_seen.to_f %>
+            <article class="pt-card" style="opacity:0.65;">
+              <%= link_to product_path(product), class: "pt-card-media", style: "text-decoration:none;color:inherit;" do %>
+                <% if product.image_url.present? %>
+                  <%= image_tag product.image_url, alt: product.name %>
+                <% else %>
+                  <div style="width:100%;height:100%;display:grid;place-items:center;font-size:40px;color:var(--muted);">📦</div>
+                <% end %>
+                <div class="pt-card-media-shade"></div>
+                <span class="pt-tag pt-tag-overlay"><%= product.category %></span>
+              <% end %>
+              <div class="pt-card-body">
+                <h3 class="pt-card-title">
+                  <%= link_to product.name, product, style: "text-decoration:none;color:inherit;" %>
+                </h3>
+                <div class="pt-card-price-row">
+                  <div class="pt-card-price" style="color:var(--orange);">
+                    $<%= sprintf("%.2f", lowest) %>
+                  </div>
+                </div>
+                <div class="pt-card-low">
+                  <span class="pt-card-low-dot" style="background:var(--orange);"></span>
+                  <span class="pt-card-low-label">Need</span>
+                  <span class="pt-card-low-num" style="color:var(--orange);">$<%= sprintf("%.2f", lowest - @budget) %> more</span>
+                </div>
+              </div>
+              <div class="pt-card-foot">
+                <%= link_to "View details →", product, class: "pt-link-btn pt-link-btn-strong" %>
+              </div>
+            </article>
+          <% end %>
+        </div>
+      <% end %>
+
+    <% end %>
+  </section>
+</main>

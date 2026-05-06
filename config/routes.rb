@@ -10,5 +10,5 @@ Rails.application.routes.draw do
     end
   end
   resources :price_records, only: [ :index, :show, :edit, :update, :destroy ]
-  get "recommendations", to: "recommendations#index"
+  get "budgetplanner", to: "budget_planner#index", as: :budget_planner
 end
