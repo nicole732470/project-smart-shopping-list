@@ -13,13 +13,13 @@
         </div>
         <aside class="pt-hero-cta">
           <%= link_to new_product_path, class: "pt-hero-add" do %>
-            <span class="pt-hero-add-plus" aria-hidden="true">+</span>
+            <span class="pt-hero-add-plus" aria-hidden="true"><%= render "shared/icon", name: "plus", size: 22 %></span>
             <span class="pt-hero-add-body">
               <span class="pt-hero-add-eyebrow">Start tracking</span>
               <span class="pt-hero-add-title">Add a product</span>
               <span class="pt-hero-add-sub">Paste any product link, we'll fetch the price and watch for drops.</span>
             </span>
-            <span class="pt-hero-add-arrow" aria-hidden="true">&rarr;</span>
+            <span class="pt-hero-add-arrow" aria-hidden="true"><%= render "shared/icon", name: "arrow-right", size: 20 %></span>
           <% end %>
           <div class="pt-hero-meta">
             <span class="pt-hero-meta-dot"></span>
@@ -35,7 +35,7 @@
       <div class="container-xl">
         <div class="pt-toolbar">
           <div class="pt-search">
-            <span class="pt-search-icon">⌕</span>
+            <span class="pt-search-icon"><%= render "shared/icon", name: "search", size: 16 %></span>
             <%= f.text_field :search,
                   value: params[:search],
                   placeholder: "Search by name, category, description…",
@@ -108,7 +108,7 @@
               <% if product.image_url.present? %>
                 <%= image_tag product.image_url, alt: product.name %>
               <% else %>
-                <div style="width:100%;height:100%;display:grid;place-items:center;font-size:42px;color:var(--muted);">📦</div>
+                <div class="pt-img-fallback"><%= render "shared/icon", name: "package", size: 48 %></div>
               <% end %>
               <div class="pt-card-media-shade"></div>
               <span class="pt-tag pt-tag-overlay"><%= product.category %></span>
@@ -156,13 +156,17 @@
                     class: "pt-link-btn pt-link-btn-strong",
                     aria: { label: "View details for #{product.name}" } %>
               <div class="pt-row-actions">
-                <%= link_to "Edit", edit_product_path(product),
+                <%= link_to edit_product_path(product),
                       class: "pt-icon-btn",
-                      aria: { label: "Edit #{product.name}" } %>
-                <%= link_to "Del", product_path(product),
+                      aria: { label: "Edit #{product.name}" } do %>
+                  <%= render "shared/icon", name: "edit", size: 16 %>
+                <% end %>
+                <%= link_to product_path(product),
                       data: { turbo_method: :delete, turbo_confirm: "Delete \"#{product.name}\"?" },
                       class: "pt-icon-btn pt-icon-btn-danger",
-                      aria: { label: "Delete #{product.name}" } %>
+                      aria: { label: "Delete #{product.name}" } do %>
+                  <%= render "shared/icon", name: "trash", size: 16 %>
+                <% end %>
               </div>
             </div>
           </article>
@@ -170,7 +174,7 @@
       </div>
     <% elsif params[:search].present? || params[:category].present? %>
       <div class="pt-empty-filter">
-        <div class="pt-empty-icon">⌕</div>
+        <div class="pt-empty-icon"><%= render "shared/icon", name: "search", size: 32 %></div>
         <h3>No products match.</h3>
         <p>Try a different search term or clear your filters.</p>
         <%= link_to "Clear filters", products_path, class: "pt-btn pt-btn-secondary" %>

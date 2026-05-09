@@ -9,13 +9,13 @@
         </div>
         <aside class="pt-hero-cta">
           <%= link_to products_path, class: "pt-hero-add" do %>
-            <span class="pt-hero-add-plus" aria-hidden="true">→</span>
+            <span class="pt-hero-add-plus" aria-hidden="true"><%= render "shared/icon", name: "trend-up", size: 22 %></span>
             <span class="pt-hero-add-body">
               <span class="pt-hero-add-eyebrow">Browse products</span>
               <span class="pt-hero-add-title">Open a product to log a price</span>
               <span class="pt-hero-add-sub">Pick a product first, then add an observation to its history.</span>
             </span>
-            <span class="pt-hero-add-arrow" aria-hidden="true">→</span>
+            <span class="pt-hero-add-arrow" aria-hidden="true"><%= render "shared/icon", name: "arrow-right", size: 20 %></span>
           <% end %>
           <div class="pt-hero-meta">
             <span class="pt-hero-meta-dot"></span>
@@ -52,7 +52,7 @@
                     <% if record.product.image_url.present? %>
                       <%= image_tag record.product.image_url, alt: "" %>
                     <% else %>
-                      <div style="width:40px;height:40px;border-radius:8px;background:var(--bg-2);display:grid;place-items:center;">📦</div>
+                      <div class="pt-img-fallback pt-img-fallback-sm"><%= render "shared/icon", name: "package", size: 20 %></div>
                     <% end %>
                     <div>
                       <div class="pt-table-name"><%= link_to record.product.name, record.product, class: "pt-strong", style: "text-decoration: none; color: inherit;" %></div>

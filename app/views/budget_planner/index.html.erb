@@ -47,7 +47,7 @@
 
     <% elsif @affordable.empty? && @over_budget.empty? %>
       <div class="pt-empty">
-        <div class="pt-empty-icon">📦</div>
+        <div class="pt-empty-icon"><%= render "shared/icon", name: "package", size: 32 %></div>
         <h3>No price data yet.</h3>
         <p>Start tracking products and logging prices — then come back to see what fits your budget.</p>
         <%= link_to "+ Add a product", new_product_path, class: "pt-btn pt-btn-primary" %>
@@ -91,7 +91,7 @@
                 <% if product.image_url.present? %>
                   <%= image_tag product.image_url, alt: product.name %>
                 <% else %>
-                  <div style="width:100%;height:100%;display:grid;place-items:center;font-size:40px;color:var(--muted);">📦</div>
+                  <div class="pt-img-fallback"><%= render "shared/icon", name: "package", size: 40 %></div>
                 <% end %>
                 <div class="pt-card-media-shade"></div>
                 <span class="pt-tag pt-tag-overlay"><%= product.category %></span>
@@ -133,7 +133,7 @@
                 <% if product.image_url.present? %>
                   <%= image_tag product.image_url, alt: product.name %>
                 <% else %>
-                  <div style="width:100%;height:100%;display:grid;place-items:center;font-size:40px;color:var(--muted);">📦</div>
+                  <div class="pt-img-fallback"><%= render "shared/icon", name: "package", size: 40 %></div>
                 <% end %>
                 <div class="pt-card-media-shade"></div>
                 <span class="pt-tag pt-tag-overlay"><%= product.category %></span>
