@@ -67,6 +67,33 @@ These tools solve overlapping problems and are useful for comparison and inspira
 - **Shared wishlists.** Share a list of watched items with friends/family for gift ideas.
 - **Import from URL.** Paste any product URL and auto-fill the form (name, image, initial price).
 
+## Visual assets
+
+PriceTracker uses a small set of visual assets to give the UI character beyond plain text. Sources and licenses are listed below.
+
+### Photography
+
+| Asset | Where it's used | Source | License |
+|---|---|---|---|
+| `app/assets/images/hero-shelves.jpg` | Banner image at the top of the About page | [Unsplash photo `1607082348824-0a96f2a4b9da`](https://unsplash.com/photos/1607082348824-0a96f2a4b9da) | [Unsplash License](https://unsplash.com/license) — free to use, no attribution required |
+
+Approved sources we draw from:
+- [Unsplash](https://unsplash.com/) — primary photography source
+- [Pixabay](https://pixabay.com/) — secondary, used if Unsplash doesn't have what we need
+- [RGBStock](https://www.rgbstock.com/images/) — also approved
+
+### Icons
+
+All UI icons (search, plus, arrow, package, trend, edit, trash) are hand-written inline SVGs in `app/views/shared/_icon.html.erb`. The stroke shapes are adapted from the open-source [Feather Icons](https://feathericons.com/) set ([MIT License](https://github.com/feathericons/feather/blob/main/LICENSE)). No icon font is loaded — every icon is inlined at render time so it inherits text colour and avoids an extra network request.
+
+### Brand mark
+
+The "P/T" wordmark is a typographic mark drawn with CSS; no external image is used.
+
+### Custom error pages
+
+`public/404.html`, `public/422.html`, `public/500.html`, and `public/406-unsupported-browser.html` are styled to match the in-app `pt-` design system (typography, palette, brand mark, button shapes). Each page links back to `/` and surfaces the error code prominently.
+
 ## Development notes
 
 ### Running locally
