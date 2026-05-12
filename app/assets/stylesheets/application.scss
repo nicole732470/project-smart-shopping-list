@@ -58,6 +58,22 @@ body {
 .pt-link:hover { text-decoration: underline; }
 .pt-link-strong { font-weight: 500; }
 
+/* ============== Skip link ============== */
+.pt-skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  padding: 10px 18px;
+  background: var(--ink);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 9999;
+  border-radius: 0 0 var(--r-md) 0;
+  text-decoration: none;
+}
+.pt-skip-link:focus { top: 0; }
+
 /* ============== Header ============== */
 .pt-header {
   background: rgba(255,255,255,0.85);

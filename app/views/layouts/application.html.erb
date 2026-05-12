@@ -9,6 +9,7 @@
     <%= javascript_importmap_tags %>
   </head>
   <body>
+    <a href="#main-content" class="pt-skip-link">Skip to main content</a>
     <header class="pt-header">
       <div class="pt-header-inner container-xl">
         <%= link_to root_path, class: "pt-brand" do %>
@@ -39,6 +40,7 @@
 
     <%= render "shared/flash" %>
 
+    <div id="main-content" tabindex="-1"></div>
     <%= yield %>
 
     <footer class="pt-footer">
