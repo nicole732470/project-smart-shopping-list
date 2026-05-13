@@ -55,6 +55,7 @@
             <%= form.password_field :password,
                   required: true, autocomplete: "new-password", maxlength: 72,
                   class: "pt-input" %>
+            <span class="pt-field-hint">Min. 8 characters, must include a special character (e.g. !, @, #). No repeated characters or common passwords.</span>
           </div>
           <div class="pt-field">
             <label class="pt-field-label" for="user_password_confirmation">Confirm password</label>
