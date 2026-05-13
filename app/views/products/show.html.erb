@@ -95,16 +95,16 @@
             </div>
 
             <div class="pt-prod-actions">
-              <%= link_to new_product_price_record_path(@product), class: "pt-btn pt-btn-primary pt-btn-block" do %>
-                <span class="pt-btn-icon">+</span> Log a price
-              <% end %>
               <% if @product.source_url.present? %>
                 <%= button_to fetch_price_product_path(@product), method: :post,
-                      class: "pt-btn pt-btn-secondary pt-btn-block",
+                      class: "pt-btn pt-btn-primary pt-btn-block",
                       data: { turbo_confirm: "Fetch the latest price from the source URL? This may take a few seconds." },
                       form: { style: "width: 100%;" } do %>
                   ↻ Fetch latest from source
                 <% end %>
+              <% end %>
+              <%= link_to new_product_price_record_path(@product), class: "pt-btn pt-btn-secondary pt-btn-block" do %>
+                <span class="pt-btn-icon">+</span> Log a price
               <% end %>
               <div class="pt-prod-actions-row">
                 <%= link_to "Edit", edit_product_path(@product), class: "pt-link-btn" %>
