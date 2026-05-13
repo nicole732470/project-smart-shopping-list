@@ -104,7 +104,7 @@ class AuthenticationComprehensiveTest < ActionDispatch::IntegrationTest
 
   test "passwords are hashed not stored in plaintext" do
     new_user = User.create!(
-      email_address: "secure@example.com",
+      email_address: "hashtest@example.com",
       password: "MySecurePassword123!",
       password_confirmation: "MySecurePassword123!"
     )
@@ -172,8 +172,8 @@ class AuthenticationComprehensiveTest < ActionDispatch::IntegrationTest
     post registration_path, params: {
       user: {
         email_address: "TestUser@EXAMPLE.COM",
-        password: "password",
-        password_confirmation: "password"
+        password: "Test#Pass9!",
+        password_confirmation: "Test#Pass9!"
       }
     }
 
@@ -185,8 +185,8 @@ class AuthenticationComprehensiveTest < ActionDispatch::IntegrationTest
     post registration_path, params: {
       user: {
         email_address: "  trimmed@example.com  ",
-        password: "password",
-        password_confirmation: "password"
+        password: "Test#Pass9!",
+        password_confirmation: "Test#Pass9!"
       }
     }
 

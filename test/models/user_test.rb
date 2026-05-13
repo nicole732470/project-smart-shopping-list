@@ -4,8 +4,8 @@ class UserTest < ActiveSupport::TestCase
   def valid_attributes(overrides = {})
     {
       email_address: "person@example.com",
-      password: "password",
-      password_confirmation: "password"
+      password: "Test#Pass9!",
+      password_confirmation: "Test#Pass9!"
     }.merge(overrides)
   end
 
