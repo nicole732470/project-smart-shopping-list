@@ -2,11 +2,19 @@ class ProductsController < ApplicationController
   before_action :set_product, only: [ :show, :edit, :update, :destroy, :fetch_price ]
 
   def index
-    @products = Current.user.products.includes(:price_records)
-    @products = fuzzy_search(@products, params[:search]) if params[:search].present?
-    @products = @products.where(category: params[:category]) if params[:category].present?
-    @products = sort_products(@products, params[:sort])
+    scope = Current.user.products.includes(:price_records)
+    scope = fuzzy_search(scope, params[:search]) if params[:search].present?
+    scope = scope.where(category: params[:category]) if params[:category].present?
+    scope = sort_products(scope, params[:sort])
 
+    # The "price_asc/price_desc" sort path uses GROUP BY products.id, which
+    # would make Pagy's default count(:all) return per-group counts. Override
+    # with the underlying filtered product count so pagination math is right.
+    count_scope = Current.user.products
+    count_scope = fuzzy_search(count_scope, params[:search]) if params[:search].present?
+    count_scope = count_scope.where(category: params[:category]) if params[:category].present?
+
+    @pagy, @products = pagy(scope, count: count_scope.count, limit: 24)
     @categories = Current.user.products.distinct.pluck(:category).compact.sort
   end
 

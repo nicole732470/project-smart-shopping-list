@@ -2,7 +2,8 @@ class PriceRecordsController < ApplicationController
   before_action :set_price_record, only: [ :show, :edit, :update, :destroy ]
 
   def index
-    @price_records = PriceRecord.where(product: Current.user.products).includes(:product).order(recorded_at: :desc)
+    scope = PriceRecord.where(product: Current.user.products).includes(:product).order(recorded_at: :desc)
+    @pagy, @price_records = pagy(scope, limit: 30)
   end
 
   def show; end

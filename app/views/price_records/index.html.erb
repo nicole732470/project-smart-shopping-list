@@ -19,7 +19,7 @@
           <% end %>
           <div class="pt-hero-meta">
             <span class="pt-hero-meta-dot"></span>
-            <span><strong><%= @price_records.size %></strong> total observations</span>
+            <span><strong><%= @pagy&.count || @price_records.size %></strong> total observations</span>
           </div>
         </aside>
       </div>
@@ -43,10 +43,11 @@
             </tr>
           </thead>
           <tbody>
-            <% total = @price_records.size %>
+            <% total = @pagy&.count || @price_records.size %>
+            <% offset = @pagy ? @pagy.from - 1 : 0 %>
             <% @price_records.each_with_index do |record, i| %>
               <tr>
-                <td class="pt-mono pt-muted"><%= sprintf("%03d", total - i) %></td>
+                <td class="pt-mono pt-muted"><%= sprintf("%03d", total - offset - i) %></td>
                 <td>
                   <div class="pt-table-prod">
                     <% if record.product.image_url.present? %>
@@ -82,6 +83,15 @@
           </tbody>
         </table>
       </div>
+
+      <% if @pagy && @pagy.pages > 1 %>
+        <nav class="pt-pagination" aria-label="Price records pagination">
+          <%== pagy_nav(@pagy) %>
+        </nav>
+        <div class="pt-pagination-meta">
+          Page <%= @pagy.page %> of <%= @pagy.pages %> · <%= @pagy.count %> observations
+        </div>
+      <% end %>
     <% else %>
       <div class="pt-empty">
         <div class="pt-empty-graphic">

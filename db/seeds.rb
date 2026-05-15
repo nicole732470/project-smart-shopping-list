@@ -3,13 +3,16 @@ PriceRecord.destroy_all
 Product.destroy_all
 User.destroy_all
 
+# Don't fire the price-alerter (or its emails) during bulk seeding.
+PriceRecord.alerter_callback_enabled = false
+
 puts "Creating demo user..."
 demo_user = User.create!(
   email_address: "demo@example.com",
-  password: "password",
-  password_confirmation: "password"
+  password: "Demo1234!",
+  password_confirmation: "Demo1234!"
 )
-puts "  demo login: demo@example.com / password"
+puts "  demo login: demo@example.com / Demo1234!"
 
 puts "Creating products..."
 products_data = [
@@ -91,4 +94,82 @@ products.each do |product|
   end
 end
 
-puts "✅ Done! Created #{Product.count} products and #{PriceRecord.count} price records."
+puts "Demo user has #{Product.count} products and #{PriceRecord.count} price records."
+
+# ─────────────────────────────────────────────────────────────────────────────
+# paginationtest@example.com — large dataset so pagination is visible
+# ─────────────────────────────────────────────────────────────────────────────
+puts ""
+puts "Creating pagination test user with large dataset..."
+pagination_user = User.create!(
+  email_address: "paginationtest@example.com",
+  password: "Pagy123!",
+  password_confirmation: "Pagy123!"
+)
+puts "  pagination login: paginationtest@example.com / Pagy123!"
+
+PAGINATION_PRODUCTS  = 1_250
+PAGINATION_RECS_MIN  = 3
+PAGINATION_RECS_MAX  = 8
+
+categories = [
+  "Electronics", "Computers & Laptops", "Gaming", "TVs & Home Theater",
+  "Appliances", "Clothing & Shoes", "Books", "Home & Kitchen",
+  "Beauty", "Sports & Outdoors", "Toys", "Tools", "Pet Supplies", "Garden"
+]
+adjectives = %w[Pro Max Ultra Mini Lite Plus Air Smart Premium Classic Eco Compact Heavy-Duty Wireless]
+nouns      = %w[Speaker Headphones Mouse Keyboard Monitor Camera Tablet Phone Laptop Backpack Mug Lamp Pillow Sneaker Watch Drone Vacuum Toaster Blender Bookcase]
+stores     = store_urls.keys
+
+now = Time.current
+product_rows = Array.new(PAGINATION_PRODUCTS) do |i|
+  brand     = adjectives.sample
+  product   = nouns.sample
+  model_num = format("%04d", i + 1)
+  name      = "#{brand} #{product} #{model_num}"
+  {
+    user_id:     pagination_user.id,
+    name:        name,
+    category:    categories.sample,
+    description: "Auto-generated demo product ##{model_num} for pagination/perf testing.",
+    source_url:  "https://example.com/products/#{model_num}",
+    created_at:  now - rand(1..400).days,
+    updated_at:  now
+  }
+end
+
+print "  inserting #{PAGINATION_PRODUCTS} products... "
+Product.insert_all(product_rows)
+puts "done."
+
+product_ids = Product.where(user_id: pagination_user.id).pluck(:id)
+
+print "  generating price records... "
+record_rows = []
+product_ids.each do |pid|
+  base_price = rand(20..500) + rand(0..99) / 100.0
+  rand(PAGINATION_RECS_MIN..PAGINATION_RECS_MAX).times do |j|
+    record_rows << {
+      product_id:  pid,
+      price:       (base_price * (1 + rand(-15..15) / 100.0)).round(2),
+      store_name:  stores.sample,
+      url:         nil,
+      recorded_at: now - (j * 14 + rand(1..13)).days,
+      notes:       (notes_options.sample if rand < 0.4),
+      source:      [ "manual", "scraped" ].sample,
+      created_at:  now,
+      updated_at:  now
+    }
+  end
+end
+
+# Bulk insert in chunks to keep memory + SQL string size sane.
+record_rows.each_slice(1_000) { |chunk| PriceRecord.insert_all(chunk) }
+puts "done — #{record_rows.size} records across #{product_ids.size} products."
+
+PriceRecord.alerter_callback_enabled = true
+
+puts ""
+puts "✅ Seed complete."
+puts "   Demo:       demo@example.com / Demo1234!  (#{demo_user.products.count} products)"
+puts "   Pagination: paginationtest@example.com / Pagy123!  (#{pagination_user.products.count} products, #{PriceRecord.where(product_id: product_ids).count} records)"

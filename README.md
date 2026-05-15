@@ -40,6 +40,17 @@ bin/rails test
 bin/rails server
 ```
 
+## Seed accounts
+
+After running `bin/rails db:seed` two accounts are available:
+
+| Email | Password | Dataset |
+|---|---|---|
+| `demo@example.com` | `Demo1234!` | 20 hand-picked products, ~60 price records — for normal demos |
+| `paginationtest@example.com` | `Pagy123!` | **~1,250 products, ~5,500 price records** — for exercising pagination and stress-testing list performance |
+
+The pagination account is the one to log into when verifying that the products grid and price-records ledger paginate correctly and stay responsive on large datasets. Pagination is provided by [Pagy](https://github.com/ddnexus/pagy) and shows up on the products index (24 per page) and the price-records index (30 per page).
+
 ## Automatic daily price refresh
 
 Every product with a `source_url` is re-scraped once a day so the

@@ -27,6 +27,9 @@ gem "httparty"
 # Charts on the product detail page (price history)
 gem "chartkick"
 
+# Pagination
+gem "pagy", "~> 9.3"
+
 group :development, :test do
   gem "faker"
 end
