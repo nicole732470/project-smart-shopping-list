@@ -70,11 +70,13 @@
                   {}, class: "pt-select", data: { action: "change->auto-submit#submitNow" } %>
           </div>
 
-          <%= f.submit "Apply", class: "pt-btn pt-btn-secondary" %>
-
           <% if params[:search].present? || params[:category].present? || (params[:sort].present? && params[:sort] != "newest") %>
             <%= link_to "Clear filters", products_path, class: "pt-link-btn pt-link-btn-strong" %>
           <% end %>
+
+          <%# Keep a hidden submit so Enter in the search box still posts the form,
+              and Stimulus is free to call requestSubmit() without warnings. %>
+          <%= f.submit "Apply", style: "display:none;", tabindex: -1, "aria-hidden": "true" %>
         </div>
 
         <div class="pt-result-row">
