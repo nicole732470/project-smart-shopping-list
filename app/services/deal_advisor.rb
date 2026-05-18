@@ -19,6 +19,7 @@ class DealAdvisor
 
   ENDPOINT      = "https://openrouter.ai/api/v1/chat/completions"
   DEFAULT_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
+  CACHE_TTL     = 6.hours
 
   def self.call(product)
     new(product).call
@@ -29,9 +30,18 @@ class DealAdvisor
   end
 
   def call
+    # The OpenRouter free tier rate-limits aggressively. If we successfully
+    # got an AI answer recently, reuse it instead of burning another call
+    # and falling back to the heuristic. Heuristic responses are not cached
+    # — they're cheap, and we want each fresh page view to retry the AI.
+    cached = cached_ai_advice
+    return cached if cached
+
     return heuristic_advice unless ai_enabled?
 
-    ai_advice
+    advice = ai_advice
+    persist(advice)
+    advice
   rescue StandardError => e
     Rails.logger.info("[DealAdvisor] Falling back to heuristic advice: #{e.class}: #{e.message}")
     heuristic_advice
@@ -46,6 +56,36 @@ class DealAdvisor
 
     enable_flag = ENV["ENABLE_AI_DEAL_ADVICE"]
     enable_flag.blank? || ActiveModel::Type::Boolean.new.cast(enable_flag)
+  end
+
+  # Return a cached AI advice struct iff it exists, is fresh (within
+  # CACHE_TTL), and the product hasn't logged a new price since it was
+  # generated. The third check matters: a new price record changes the
+  # signal, so we invalidate stale advice.
+  def cached_ai_advice
+    return nil unless product.respond_to?(:advisor_generated_at)
+    return nil if product.advisor_source != "ai"
+    return nil if product.advisor_summary.blank?
+    return nil if product.advisor_generated_at.blank?
+    return nil if product.advisor_generated_at < CACHE_TTL.ago
+
+    latest_record = product.price_records.order(recorded_at: :desc).limit(1).first
+    return nil if latest_record && latest_record.recorded_at > product.advisor_generated_at
+
+    Advice.new(label: "AI deal read", summary: product.advisor_summary, source: "ai")
+  end
+
+  def persist(advice)
+    return unless advice.source == "ai"
+    return unless product.respond_to?(:advisor_summary)
+
+    product.update_columns(
+      advisor_summary:      advice.summary,
+      advisor_source:       advice.source,
+      advisor_generated_at: Time.current
+    )
+  rescue StandardError => e
+    Rails.logger.info("[DealAdvisor] cache persist failed: #{e.class}: #{e.message}")
   end
 
   def model
