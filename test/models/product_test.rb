@@ -171,6 +171,11 @@ class ProductTest < ActiveSupport::TestCase
   end
 
   test "alert_trigger_record returns the latest record at or before last_alerted_at" do
+    # We're explicitly testing the lookup query, not the alerter pipeline.
+    # Without this, the third create! would fire PriceAlerter, which would
+    # overwrite last_alerted_at with Time.current and pull a newer record
+    # into the trigger window.
+    PriceRecord.alerter_callback_enabled = false
     @product.save!
     older  = @product.price_records.create!(price: 120, store_name: "A", recorded_at: 5.days.ago)
     target = @product.price_records.create!(price:  80, store_name: "B", recorded_at: 2.days.ago)
@@ -179,5 +184,7 @@ class ProductTest < ActiveSupport::TestCase
 
     assert_equal target.id, @product.alert_trigger_record.id
     refute_equal older.id, @product.alert_trigger_record.id
+  ensure
+    PriceRecord.alerter_callback_enabled = true
   end
 end
