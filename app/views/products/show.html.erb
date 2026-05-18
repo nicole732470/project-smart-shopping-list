@@ -31,13 +31,13 @@
     <% lowest_store = @lowest_price_record&.store_name %>
     <% trend = @product.respond_to?(:price_trend) ? @product.price_trend : nil %>
     <% trend_label = case trend
-                     when 1 then "Up"
-                     when -1 then "Down"
-                     else "Stable"
+                     when :up then "Up"
+                     when :down then "Down"
+                     when :stable then "Stable"
                      end %>
     <% trend_color, trend_bg = case trend
-                               when 1 then [ "var(--orange)", "#fff3e6" ]
-                               when -1 then [ "var(--green)", "var(--green-50)" ]
+                               when :up then [ "var(--orange)", "#fff3e6" ]
+                               when :down then [ "var(--green)", "var(--green-50)" ]
                                else [ "var(--muted-2)", "var(--bg-2)" ]
                                end %>
 

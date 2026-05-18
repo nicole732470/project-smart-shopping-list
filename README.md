@@ -22,6 +22,24 @@ A web app where signed-in users save products they are watching, record prices s
 - **Scheduling (When2meet):** https://www.when2meet.com/?36156767-PyTqS
 - **Heroku deployment:** https://smart-shoppinglist-6ae31171e85c.herokuapp.com/
 
+## Local setup
+
+This app is built on Rails 8.1 and should be run with the Ruby version in
+`.ruby-version` (`4.0.2`) plus the Bundler version in `Gemfile.lock` (`4.0.9`).
+If `bin/rails` reports macOS system Ruby 2.6, switch your Ruby manager to the
+project version before installing gems.
+
+Typical local setup:
+
+```sh
+ruby -v
+gem install bundler:4.0.9
+bundle install
+bin/rails db:prepare
+bin/rails test
+bin/rails server
+```
+
 ## Automatic daily price refresh
 
 Every product with a `source_url` is re-scraped once a day so the
