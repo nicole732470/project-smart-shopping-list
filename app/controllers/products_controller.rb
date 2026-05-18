@@ -14,6 +14,10 @@ class ProductsController < ApplicationController
     @price_records = @product.price_records.order(recorded_at: :desc)
     @chart_data = build_chart_data(@price_records)
     @lowest_price_record = @product.lowest_price_record
+    # Powers the "🎉 Price alert triggered" banner. Only populated when the
+    # most recent alert is within the banner display window (7 days), so
+    # the show view can render unconditionally on a non-nil value.
+    @alert_trigger_record = @product.alert_trigger_record if @product.recent_alert?
   end
 
   def new

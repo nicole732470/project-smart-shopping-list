@@ -54,6 +54,35 @@ retailers, and the legal/ethical scraping notes, see:
 - [`wiki.md` § Scheduled tasks](wiki.md) — one-time secret setup and
   manual-trigger verification.
 
+## Target price + price-drop alerts
+
+Each product can carry an optional **target price** ("notify me when price
+drops to $X"). Whenever a new `PriceRecord` is written — whether by the
+daily refresh cron, the manual "Fetch latest" button, or a hand-entered
+price — `PriceAlerter` checks two conditions:
+
+1. **`target_hit`** — new price ≤ `product.target_price`.
+2. **`history_low`** — new price strictly below every previous record for
+   this product.
+
+If either is true and no alert has fired in the last 24 hours, the system:
+
+- renders + queues a `PriceAlertMailer.price_drop` notification, and
+- stamps `product.last_alerted_at = Time.current`.
+
+The alert then surfaces in the UI **without** requiring an SMTP provider:
+
+- a green **"PRICE ALERT TRIGGERED"** banner on the product show page for
+  the next 7 days (with the trigger price and store);
+- a **"🎉 Alert fired N days ago"** chip on the product card in the index;
+- a **"🎯 Notify at $X"** chip + side-meta row whenever a target is set.
+
+Outbound email delivery is intentionally left unwired for this milestone —
+templates render correctly via `bin/rails runner` and the mailer previews
+under `/rails/mailers/price_alert_mailer`, but no SMTP credentials are
+configured. See [`wiki.md` § Price-drop alerts](wiki.md) for the full
+pipeline diagram and implementation notes.
+
 ## Ideas captured from early planning
 
 - Save product links to the database with a user id.

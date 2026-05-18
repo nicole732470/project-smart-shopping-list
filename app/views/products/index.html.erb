@@ -150,6 +150,20 @@
                   <span class="pt-card-low-num">$<%= sprintf("%.2f", lowest) %></span>
                 </div>
               <% end %>
+
+              <% if product.recent_alert? %>
+                <div class="pt-card-low" style="color: var(--green); margin-top: 4px;">
+                  <span class="pt-card-low-dot" style="background: var(--green);"></span>
+                  <span class="pt-card-low-label">🎉 Alert fired</span>
+                  <span class="pt-card-low-num"><%= time_ago_in_words(product.last_alerted_at) %> ago</span>
+                </div>
+              <% elsif product.target_price.present? %>
+                <div class="pt-card-low pt-muted" style="margin-top: 4px;">
+                  <span class="pt-card-low-dot" style="background: var(--muted-2);"></span>
+                  <span class="pt-card-low-label">🎯 Notify at</span>
+                  <span class="pt-card-low-num">$<%= sprintf("%.2f", product.target_price) %></span>
+                </div>
+              <% end %>
             </div>
             <div class="pt-card-foot">
               <%= link_to "View details →", product,

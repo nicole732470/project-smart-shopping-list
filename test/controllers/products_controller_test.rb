@@ -127,4 +127,67 @@ class ProductsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "No products match", response.body
   end
+
+  # --- Target price + alert banner ---
+
+  test "update can set target_price" do
+    patch product_url(@product), params: { product: { target_price: "75.50" } }
+    assert_redirected_to product_url(@product)
+    assert_in_delta 75.50, @product.reload.target_price.to_f, 0.001
+  end
+
+  test "update can clear target_price by submitting blank" do
+    @product.update_columns(target_price: 100)
+    patch product_url(@product), params: { product: { target_price: "" } }
+    assert_redirected_to product_url(@product)
+    assert_nil @product.reload.target_price
+  end
+
+  test "show displays the target price meta when set" do
+    @product.update_columns(target_price: 99.99)
+    get product_url(@product)
+    assert_response :success
+    assert_match "Notify at", response.body
+    assert_match "99.99", response.body
+  end
+
+  test "show renders alert banner when an alert fired recently" do
+    @product.update_columns(target_price: 100, last_alerted_at: 2.days.ago)
+    @product.price_records.create!(
+      price: 80, store_name: "Best Buy", recorded_at: 2.days.ago - 1.minute
+    )
+    get product_url(@product)
+    assert_response :success
+    assert_match "PRICE ALERT TRIGGERED", response.body
+    assert_match "Best Buy", response.body
+  end
+
+  test "show does not render alert banner for stale alerts" do
+    @product.update_columns(target_price: 100, last_alerted_at: 10.days.ago)
+    get product_url(@product)
+    assert_response :success
+    assert_no_match "PRICE ALERT TRIGGERED", response.body
+  end
+
+  test "show does not render alert banner when nothing has fired" do
+    @product.update_columns(target_price: 100, last_alerted_at: nil)
+    get product_url(@product)
+    assert_response :success
+    assert_no_match "PRICE ALERT TRIGGERED", response.body
+  end
+
+  test "index card shows target chip when target_price is set and no recent alert" do
+    @product.update_columns(target_price: 49.99, last_alerted_at: nil)
+    get products_url
+    assert_response :success
+    assert_match "Notify at", response.body
+    assert_match "49.99", response.body
+  end
+
+  test "index card shows alert-fired chip when alert is recent" do
+    @product.update_columns(target_price: 100, last_alerted_at: 1.day.ago)
+    get products_url
+    assert_response :success
+    assert_match "Alert fired", response.body
+  end
 end

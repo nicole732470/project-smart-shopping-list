@@ -80,6 +80,19 @@
       </div>
     <% end %>
 
+    <div class="pt-field">
+      <label class="pt-field-label" for="product_target_price">
+        Notify me when price drops to <span class="pt-field-req">optional</span>
+      </label>
+      <%= f.number_field :target_price,
+            class: "pt-input",
+            step: 0.01, min: 0,
+            placeholder: "e.g. 99.99" %>
+      <div class="pt-field-hint">
+        Leave blank to skip alerts. You can also set or change this later from the product's edit page.
+      </div>
+    </div>
+
     <div class="pt-form-actions">
       <%= f.submit "Add Product", class: "pt-btn pt-btn-primary pt-btn-lg" %>
       <%= link_to "← Back to products", products_path, class: "pt-link-btn" %>
@@ -109,6 +122,20 @@
     <div class="pt-field">
       <label class="pt-field-label" for="product_image_url">Image URL</label>
       <%= f.url_field :image_url, class: "pt-input", placeholder: "https://..." %>
+    </div>
+
+    <div class="pt-field">
+      <label class="pt-field-label" for="product_target_price">
+        Notify me when price drops to <span class="pt-field-req">optional</span>
+      </label>
+      <%= f.number_field :target_price,
+            class: "pt-input",
+            step: 0.01, min: 0,
+            placeholder: "e.g. 99.99" %>
+      <div class="pt-field-hint">
+        We'll email you (and surface a banner here) the next time the price hits or drops below this number.
+        Leave blank to turn alerts off for this product.
+      </div>
     </div>
 
     <div class="pt-form-actions">

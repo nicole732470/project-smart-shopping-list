@@ -48,6 +48,7 @@ Users only ever see and act on their own products; attempting to access another 
 - [x] Deployed on Heroku
 - [x] Automated tests running on GitHub Actions
 - [x] Daily automatic price refresh (GitHub Actions cron → webhook)
+- [x] Target price + in-app price-drop alerts (banner + card chip, with 24h cooldown)
 
 ## Similar products and references
 
@@ -60,7 +61,7 @@ These tools solve overlapping problems and are useful for comparison and inspira
 
 ## Features beyond MVP (planned / ideas)
 
-- **Target price + price-drop alerts.** Let users set a "notify me at" price per product; send an email when a new PriceRecord comes in below that threshold.
+- **Email delivery for price-drop alerts.** The alert pipeline (target-hit + history-low detection, 24h cooldown, mailer with HTML + text templates) is implemented today; only the outbound SMTP wiring is deferred. Hooking up a transactional mail provider would let alerts land in the user's inbox in addition to the in-app banner.
 - **"Resolved" / purchased state.** A toggle on each product to mark "bought" or "no longer watching," which hides it from the main grid.
 - **Product images.** Either an uploaded image via Active Storage or a URL-scraped thumbnail.
 - **Automatic price scraping.** Pull current prices from supported retailers (Amazon, Target, etc.) instead of requiring manual entry.
@@ -162,3 +163,52 @@ heroku config:set ADMIN_REFRESH_TOKEN=<the-secret> -a smart-shoppinglist
   ```bash
   bin/rails runner "PriceFetcher.refresh_all"
   ```
+
+### Price-drop alerts (target price + in-app banner)
+
+Users can set a per-product **target price** ("notify me when price drops to
+$X"). Every time a new `PriceRecord` is written — whether by the daily
+refresh cron, the manual "Fetch latest" button, or a hand-entered price —
+the system checks whether the new price should trigger an alert.
+
+**Trigger reasons** (an alert fires if either is true):
+
+1. **`target_hit`** — the new price is at or below `product.target_price`.
+2. **`history_low`** — the new price is strictly lower than every previous
+   `PriceRecord` for this product (history-since-tracking-started).
+
+**Pipeline:**
+
+```
+PriceRecord.after_create_commit
+        ▼
+PriceAlerter.call(record)
+        ├── no-op if cooldown active (last_alerted_at within 24h)
+        ├── compute reasons (target_hit, history_low)
+        ├── PriceAlertMailer.price_drop(...).deliver_later  (rendered today;
+        │                                                    delivered when
+        │                                                    SMTP is wired)
+        └── product.update_column(:last_alerted_at, Time.current)
+```
+
+**Where the user sees it:**
+
+- **Product show page** — green "🎉 PRICE ALERT TRIGGERED" banner at the
+  top whenever `last_alerted_at` is within the last 7 days, plus a
+  "🎯 Notify at $X" row in the side meta whenever a target is set.
+- **Product index cards** — each card shows either "🎉 Alert fired Nd ago"
+  (recent alert) or "🎯 Notify at $X" (target set, no recent alert).
+- **Edit / new (manual) form** — a "Notify me when price drops to" field;
+  leave blank to opt out of alerts for that product.
+
+**Implementation notes:**
+
+- The 7-day banner window is independent of the 24-hour mailer cooldown.
+  Cooldown protects the user's inbox; the banner is the lingering proof of
+  the latest deal.
+- `Product.alert_trigger_record` resolves to the `PriceRecord` whose
+  creation most recently fired the alert. The banner shows that
+  record's price and store.
+- `PriceRecord.alerter_callback_enabled` is a `class_attribute` used by
+  tests to suppress the `after_create_commit` callback when seeding fixture
+  history (so test setup doesn't double-fire alerts).

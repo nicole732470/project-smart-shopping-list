@@ -140,4 +140,44 @@ class ProductTest < ActiveSupport::TestCase
     @product.target_price = 1
     assert @product.target_price_alert_enabled?
   end
+
+  # --- recent_alert? / alert_trigger_record helpers ---
+
+  test "recent_alert? is false when last_alerted_at is nil" do
+    @product.last_alerted_at = nil
+    refute @product.recent_alert?
+  end
+
+  test "recent_alert? is true within the 7-day window" do
+    @product.last_alerted_at = 2.days.ago
+    assert @product.recent_alert?
+  end
+
+  test "recent_alert? is false after the 7-day window" do
+    @product.last_alerted_at = 8.days.ago
+    refute @product.recent_alert?
+  end
+
+  test "recent_alert? honors a custom window override" do
+    @product.last_alerted_at = 3.hours.ago
+    assert @product.recent_alert?(window: 1.day)
+    refute @product.recent_alert?(window: 1.hour)
+  end
+
+  test "alert_trigger_record returns nil when no alert has fired" do
+    @product.save!
+    @product.last_alerted_at = nil
+    assert_nil @product.alert_trigger_record
+  end
+
+  test "alert_trigger_record returns the latest record at or before last_alerted_at" do
+    @product.save!
+    older  = @product.price_records.create!(price: 120, store_name: "A", recorded_at: 5.days.ago)
+    target = @product.price_records.create!(price:  80, store_name: "B", recorded_at: 2.days.ago)
+    @product.update_columns(last_alerted_at: 2.days.ago + 1.minute)
+    @product.price_records.create!(price: 75, store_name: "C", recorded_at: 1.day.ago)
+
+    assert_equal target.id, @product.alert_trigger_record.id
+    refute_equal older.id, @product.alert_trigger_record.id
+  end
 end

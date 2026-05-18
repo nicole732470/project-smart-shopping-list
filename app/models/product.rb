@@ -31,6 +31,25 @@ class Product < ApplicationRecord
       last_alerted_at.present? && last_alerted_at > window.ago
     end
 
+    # Used by the product detail / index views to decide whether to render
+    # the "🎉 Price alert triggered" banner / card chip. Defaults to 7 days
+    # so the banner stays around long enough for the user to actually see
+    # the deal but doesn't linger forever.
+    def recent_alert?(window: 7.days)
+      last_alerted_at.present? && last_alerted_at > window.ago
+    end
+
+    # Best-effort lookup of the PriceRecord whose creation fired the most
+    # recent alert. PriceAlerter stamps `last_alerted_at = Time.current`
+    # right after writing the PriceRecord, so the trigger record is the
+    # latest one whose `recorded_at` is at or before that stamp.
+    def alert_trigger_record
+      return nil if last_alerted_at.blank?
+      price_records.where("recorded_at <= ?", last_alerted_at)
+                   .order(recorded_at: :desc)
+                   .first
+    end
+
     def lowest_price
       price_records.minimum(:price)
     end

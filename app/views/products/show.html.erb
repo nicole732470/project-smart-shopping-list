@@ -8,6 +8,24 @@
       <span class="pt-crumb pt-crumb-current"><%= @product.name %></span>
     </nav>
 
+    <% if @alert_trigger_record %>
+      <div class="pt-flash" role="status"
+           style="border-left: 3px solid var(--green); background: var(--green-50); margin-top: 12px;">
+        <span class="pt-flash-icon" style="background: var(--green);">🎉</span>
+        <div class="pt-flash-body">
+          <div class="pt-flash-label">PRICE ALERT TRIGGERED</div>
+          <div class="pt-flash-msg">
+            $<%= sprintf("%.2f", @alert_trigger_record.price) %>
+            <% if @alert_trigger_record.store_name.present? %>at <%= @alert_trigger_record.store_name %><% end %>
+            · <%= time_ago_in_words(@product.last_alerted_at) %> ago
+            <% if @product.target_price.present? %>
+              · target: $<%= sprintf("%.2f", @product.target_price) %>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
     <% latest = @product.latest_price %>
     <% lowest = @product.lowest_price %>
     <% lowest_store = @lowest_price_record&.store_name %>
@@ -54,6 +72,12 @@
               <% if @product.last_fetched_at %>
                 <dt>Last refresh</dt>
                 <dd class="pt-mono"><%= time_ago_in_words(@product.last_fetched_at) %> ago</dd>
+              <% end %>
+              <% if @product.target_price.present? %>
+                <dt>🎯 Notify at</dt>
+                <dd class="pt-mono" style="color: var(--accent-700);">
+                  $<%= sprintf("%.2f", @product.target_price) %>
+                </dd>
               <% end %>
               <dt>Tracking since</dt>
               <dd class="pt-mono"><%= time_ago_in_words(@product.created_at) %> ago</dd>
