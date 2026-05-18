@@ -57,8 +57,10 @@
     </div>
 
     <div class="pt-field">
-      <label class="pt-field-label" for="product_category">Category</label>
-      <%= f.select :category, categories, { prompt: "Select a category" }, class: "pt-select pt-input pt-input-block" %>
+      <label class="pt-field-label" for="product_category">
+        Category <span class="pt-field-req">required</span>
+      </label>
+      <%= f.select :category, categories, { prompt: "Select a category" }, class: "pt-select pt-input pt-input-block", required: true %>
     </div>
 
     <% if manual %>
@@ -107,8 +109,10 @@
     </div>
 
     <div class="pt-field">
-      <label class="pt-field-label" for="product_category">Category</label>
-      <%= f.select :category, categories, { prompt: "Select a category" }, class: "pt-select pt-input pt-input-block" %>
+      <label class="pt-field-label" for="product_category">
+        Category <span class="pt-field-req">required</span>
+      </label>
+      <%= f.select :category, categories, { prompt: "Select a category" }, class: "pt-select pt-input pt-input-block", required: true %>
     </div>
 
     <div class="pt-field">
