@@ -21,10 +21,4 @@ Rails.application.routes.draw do
   # Webhook hit by .github/workflows/refresh-prices.yml on a daily cron.
   # Auth is by shared secret (X-Admin-Token header), not by cookie session.
   post "admin/refresh_prices", to: "admin#refresh_prices"
-
-  # OAuth (Google). omniauth-rails_csrf_protection enforces POST for the
-  # /auth/:provider request phase, so the "Continue with Google" button
-  # in the views uses button_to to send POST.
-  get  "/auth/:provider/callback", to: "sessions#create_omniauth", as: :omniauth_callback
-  post "/auth/:provider/callback", to: "sessions#create_omniauth"
 end

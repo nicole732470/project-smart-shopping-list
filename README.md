@@ -42,14 +42,16 @@ bin/rails server
 
 ## Seed accounts
 
-After running `bin/rails db:seed` two accounts are available:
+After running `bin/rails db:seed` the following accounts are available:
 
-| Email | Password | Dataset |
+| Email | Password | Notes |
 |---|---|---|
-| `demo@example.com` | `Demo1234!` | 20 hand-picked products, ~60 price records — for normal demos |
-| `paginationtest@example.com` | `Pagy123!` | **~1,250 products, ~5,500 price records** — for exercising pagination and stress-testing list performance |
+| `demo@example.com` | `Demo1234!` | Curated demo data, ~30 products with realistic price history |
+| `shopper1@example.com` … `shopper39@example.com` | `Shopper!#{n}A#{((n-1) % 9) + 1}z` | 39 load-test users, each with ~30 products and 6–10 price records per product — together they push the dataset past 1,200 products and ~9,600 price records so pagination and list performance are visible |
 
-The pagination account is the one to log into when verifying that the products grid and price-records ledger paginate correctly and stay responsive on large datasets. Pagination is provided by [Pagy](https://github.com/ddnexus/pagy) and shows up on the products index (24 per page) and the price-records index (30 per page).
+Sign in as any of the shoppers to see paginated lists in action. Pagination is provided by [Pagy](https://github.com/ddnexus/pagy) — products index paginates at 24 per page, the per-product price ledger at 20 per page.
+
+On Heroku there's also a legacy `paginationtest@example.com` (password `Pagy123!`) account with 1,250 products and ~6,900 price records — that one was inserted directly into production and isn't recreated by the seed task locally.
 
 ## Automatic daily price refresh
 

@@ -23,39 +23,18 @@ class User < ApplicationRecord
   validates :password, length: { minimum: 8, message: "must be at least 8 characters" }, if: -> { password.present? }
   validate :password_strength, if: -> { password.present? && !oauth_user? }
 
-  # Find-or-create a User from an OmniAuth::AuthHash. Called by
-  # SessionsController#create_omniauth. Matches first on (provider, uid) so
-  # repeat sign-ins always land on the same row, then falls back to the
-  # email address so users who originally signed up locally can attach a
-  # Google login later. New OAuth users get a random password that satisfies
-  # has_secure_password's create-time presence validation; they sign in via
-  # the provider, not by typing it.
-  def self.from_omniauth(auth)
-    return nil unless auth.respond_to?(:provider) && auth.respond_to?(:uid)
-
-    user = find_by(provider: auth.provider, uid: auth.uid)
-    user ||= find_by(email_address: auth.info&.email&.downcase) if auth.info&.email.present?
-    user ||= new(email_address: auth.info&.email)
-
-    user.provider   = auth.provider
-    user.uid        = auth.uid
-    user.name       = auth.info&.name       if auth.info&.name.present?
-    user.avatar_url = auth.info&.image      if auth.info&.image.present?
-
-    if user.password_digest.blank?
-      random = SecureRandom.urlsafe_base64(24) + "!Aa1"
-      user.password = random
-      user.password_confirmation = random
-    end
-
-    user.save
-    user
-  end
-
   def oauth_user?
     provider.present? && uid.present?
   end
 
+  # Find-or-create a User from an OmniAuth::AuthHash. Looks up by
+  # (provider, uid) first so repeat sign-ins land on the same row, then by
+  # email so users who originally signed up locally can attach a Google
+  # login later. New OAuth users get a random password that satisfies
+  # has_secure_password's create-time presence validation; they sign in
+  # via the provider, not by typing it. Raises User::OauthError on a
+  # missing email or validation failure so OmniauthCallbacksController can
+  # surface a friendly message.
   def self.from_omniauth(auth)
     provider = auth.provider.to_s
     uid = auth.uid.to_s

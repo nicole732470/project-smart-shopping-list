@@ -1,10 +1,24 @@
 require "net/http"
 require "json"
 
+# AI-powered "should I buy now?" advisor.
+#
+# Reads a product's price history and asks an LLM (via OpenRouter, which
+# speaks the OpenAI chat-completions wire format) for one of three takes:
+# buy now, wait, or watch. When the LLM is unreachable / disabled / misbehaving
+# the service falls back to a deterministic heuristic that compares the latest
+# price to the lowest seen and a recent average. Either way the controller
+# always gets a usable Advice struct — the product page never breaks.
+#
+# Env vars:
+#   OPENROUTER_API_KEY     — required to enable the AI path.
+#   ENABLE_AI_DEAL_ADVICE  — set to "false" to force the heuristic.
+#   OPENROUTER_MODEL       — override the default model slug.
 class DealAdvisor
   Advice = Data.define(:label, :summary, :source)
 
-  MODEL = ENV.fetch("OPENAI_DEAL_ADVISOR_MODEL", "gpt-5.4-mini")
+  ENDPOINT      = "https://openrouter.ai/api/v1/chat/completions"
+  DEFAULT_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
 
   def self.call(product)
     new(product).call
@@ -28,38 +42,40 @@ class DealAdvisor
   attr_reader :product
 
   def ai_enabled?
-    ENV["OPENAI_API_KEY"].present? && ActiveModel::Type::Boolean.new.cast(ENV["ENABLE_AI_DEAL_ADVICE"])
+    return false if ENV["OPENROUTER_API_KEY"].blank?
+
+    enable_flag = ENV["ENABLE_AI_DEAL_ADVICE"]
+    enable_flag.blank? || ActiveModel::Type::Boolean.new.cast(enable_flag)
+  end
+
+  def model
+    ENV["OPENROUTER_MODEL"].presence || DEFAULT_MODEL
   end
 
   def ai_advice
-    uri = URI("https://api.openai.com/v1/responses")
+    uri = URI(ENDPOINT)
     request = Net::HTTP::Post.new(uri)
-    request["Authorization"] = "Bearer #{ENV.fetch('OPENAI_API_KEY')}"
-    request["Content-Type"] = "application/json"
+    request["Authorization"] = "Bearer #{ENV.fetch('OPENROUTER_API_KEY')}"
+    request["Content-Type"]  = "application/json"
+    request["HTTP-Referer"]  = ENV.fetch("APP_URL", "https://smart-shoppinglist-6ae31171e85c.herokuapp.com")
+    request["X-Title"]       = "PriceTracker"
     request.body = {
-      model: MODEL,
-      input: prompt,
-      max_output_tokens: 120
+      model: model,
+      messages: [ { role: "user", content: prompt } ],
+      max_tokens: 160,
+      temperature: 0.2
     }.to_json
 
-    response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true, open_timeout: 2, read_timeout: 4) do |http|
+    response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true, open_timeout: 3, read_timeout: 8) do |http|
       http.request(request)
     end
 
-    raise "OpenAI request failed with HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess)
+    raise "OpenRouter request failed with HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess)
 
-    text = extract_text(JSON.parse(response.body)).presence
-    raise "OpenAI response did not include text" if text.blank?
+    text = JSON.parse(response.body).dig("choices", 0, "message", "content").to_s.strip
+    raise "OpenRouter response did not include text" if text.blank?
 
     Advice.new(label: "AI deal read", summary: text.squish, source: "ai")
-  end
-
-  def extract_text(payload)
-    return payload["output_text"] if payload["output_text"].present?
-
-    payload.fetch("output", []).flat_map { |item| item.fetch("content", []) }
-           .filter_map { |content| content["text"] }
-           .join(" ")
   end
 
   def prompt
