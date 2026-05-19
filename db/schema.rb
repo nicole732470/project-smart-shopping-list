@@ -10,13 +10,14 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_19_210000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_19_220000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "price_refresh_runs", force: :cascade do |t|
     t.integer "attempted", default: 0, null: false
     t.integer "batch_size"
+    t.integer "batches_run", default: 1, null: false
     t.integer "catalog_with_url"
     t.datetime "created_at", null: false
     t.decimal "duration_seconds", precision: 8, scale: 1

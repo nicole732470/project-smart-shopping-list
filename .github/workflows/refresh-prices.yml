@@ -2,9 +2,8 @@ name: Daily price refresh
 
 # Hits the deployed app's /admin/refresh_prices webhook on a schedule so
 # stale product prices are re-scraped without anyone clicking "Fetch latest
-# price". The endpoint returns 202 immediately and enqueues a batched
-# RefreshPricesJob; this workflow polls until the batch finishes and writes
-# a markdown report to the run Summary page.
+# price". Manual runs use full-cycle mode (all batches back-to-back in one
+# job). Scheduled cron runs one batch per tick (every 5 min in the 2h window).
 #
 # Schedule: every 5 minutes during UTC hours 7–8 (~2:00–3:55 AM Chicago CDT).
 # During CST (winter), shift to hours 8–9 UTC. GitHub cron is UTC-only.
@@ -12,39 +11,39 @@ name: Daily price refresh
 # Required repo secrets (Settings → Secrets and variables → Actions):
 #   APP_URL              e.g. https://smart-shoppinglist-6ae31171e85c.herokuapp.com
 #   ADMIN_REFRESH_TOKEN  must match the deployed app's ADMIN_REFRESH_TOKEN env var
-#                        (set on Heroku with `heroku config:set ADMIN_REFRESH_TOKEN=...`)
 
 on:
   schedule:
-    # 24 runs in a 2-hour window (07:00–08:55 UTC ≈ 2:00–3:55 AM Chicago CDT).
     - cron: "*/5 7-8 * * *"
   workflow_dispatch:
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 45 || 8 }}
 
     steps:
-      - name: Trigger refresh batch
+      - name: Trigger refresh
         id: trigger
         env:
           APP_URL: ${{ secrets.APP_URL }}
           ADMIN_REFRESH_TOKEN: ${{ secrets.ADMIN_REFRESH_TOKEN }}
           TRIGGER_SOURCE: ${{ github.event_name == 'workflow_dispatch' && 'manual' || 'schedule' }}
+          REFRESH_MODE: ${{ github.event_name == 'workflow_dispatch' && 'full-cycle' || 'batch' }}
         run: |
           if [ -z "$APP_URL" ] || [ -z "$ADMIN_REFRESH_TOKEN" ]; then
             echo "::error::APP_URL and ADMIN_REFRESH_TOKEN secrets must be set."
             exit 1
           fi
 
-          echo "POST $APP_URL/admin/refresh_prices (trigger=$TRIGGER_SOURCE)"
+          echo "POST $APP_URL/admin/refresh_prices (trigger=$TRIGGER_SOURCE mode=$REFRESH_MODE)"
           http_code=$(curl --silent --show-error --output /tmp/refresh_body \
                --write-out "%{http_code}" \
                --max-time 30 \
                -X POST "$APP_URL/admin/refresh_prices" \
                -H "X-Admin-Token: $ADMIN_REFRESH_TOKEN" \
                -H "X-Trigger-Source: $TRIGGER_SOURCE" \
+               -H "X-Refresh-Mode: $REFRESH_MODE" \
                -H "Accept: application/json")
           echo "HTTP $http_code"
           cat /tmp/refresh_body
@@ -56,16 +55,22 @@ jobs:
 
           run_id=$(python3 -c "import json; print(json.load(open('/tmp/refresh_body'))['run_id'])")
           echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "refresh_mode=$REFRESH_MODE" >> "$GITHUB_OUTPUT"
 
-      - name: Wait for batch completion
+      - name: Wait for completion
         id: wait
         env:
           APP_URL: ${{ secrets.APP_URL }}
           ADMIN_REFRESH_TOKEN: ${{ secrets.ADMIN_REFRESH_TOKEN }}
           RUN_ID: ${{ steps.trigger.outputs.run_id }}
+          REFRESH_MODE: ${{ steps.trigger.outputs.refresh_mode }}
         run: |
           set -euo pipefail
-          deadline=$((SECONDS + 300))
+          if [ "$REFRESH_MODE" = "full-cycle" ]; then
+            deadline=$((SECONDS + 2400))
+          else
+            deadline=$((SECONDS + 300))
+          fi
           status="pending"
 
           while [ "$SECONDS" -lt "$deadline" ]; do
@@ -91,7 +96,7 @@ jobs:
 
           echo "final_status=$status" >> "$GITHUB_OUTPUT"
           if [ "$status" = "pending" ] || [ "$status" = "running" ]; then
-            echo "::error::Batch did not finish within 5 minutes (last status: $status)."
+            echo "::error::Refresh did not finish in time (last status: $status, mode: $REFRESH_MODE)."
             exit 1
           fi
 
@@ -127,20 +132,21 @@ jobs:
           failures = data.get("failure_details") or []
 
           lines = [
-              "## Price refresh batch report",
+              "## Price refresh report",
               "",
               f"| Field | Value |",
               f"|-------|-------|",
               f"| Run ID | `{data.get('id')}` |",
               f"| Trigger | `{data.get('triggered_by')}` |",
               f"| Status | **{data.get('status')}** |",
+              f"| Batches run | {data.get('batches_run', 1)} |",
               f"| Enqueued | {data.get('enqueued_at') or '—'} |",
               f"| Started | {data.get('started_at') or '—'} |",
               f"| Finished | {data.get('finished_at') or '—'} |",
               f"| Duration | {data.get('duration_seconds', '—')}s |",
-              f"| Scrapeable catalog | {data.get('total_products', '—')} |",
-              f"| URLs with source (incl. test data) | {data.get('catalog_with_url', '—')} |",
-              f"| Batch limit | {data.get('batch_size', '—')} |",
+              f"| Refreshable catalog | {data.get('total_products', '—')} |",
+              f"| URLs with source (incl. pagination test) | {data.get('catalog_with_url', '—')} |",
+              f"| Per-batch limit | {data.get('batch_size', '—')} |",
               f"| Attempted | {data.get('attempted', 0)} |",
               f"| Succeeded | {data.get('succeeded', 0)} |",
               f"| Failed | {data.get('failed', 0)} |",
@@ -149,7 +155,7 @@ jobs:
           ]
 
           if data.get("error_message"):
-              lines += ["### Job error", "", f"```", data["error_message"], "```", ""]
+              lines += ["### Job error", "", "```", data["error_message"], "```", ""]
 
           if failures:
               lines += ["### Failed products", ""]
@@ -162,12 +168,7 @@ jobs:
                   lines.append(f"- … and {len(failures) - 20} more")
               lines.append("")
           elif data.get("status") == "skipped_overlap":
-              lines += [
-                  "### Note",
-                  "",
-                  "Previous batch was still running; this tick was skipped.",
-                  "",
-              ]
+              lines += ["### Note", "", "Previous batch was still running; this tick was skipped.", ""]
 
           print("\n".join(lines))
           PY
@@ -175,5 +176,5 @@ jobs:
       - name: Fail on job error
         if: steps.wait.outputs.final_status == 'failed'
         run: |
-          echo "Batch ended with status: ${{ steps.wait.outputs.final_status }}"
+          echo "Refresh ended with status: ${{ steps.wait.outputs.final_status }}"
           exit 1

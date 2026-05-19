@@ -11,6 +11,8 @@ namespace :paginationtest do
     old_count = user.products.count
     puts "Replacing #{old_count} products for #{user.email_address}..."
 
+    PriceRecord.alerter_callback_enabled = false
+
     product_ids = user.products.pluck(:id)
     PriceRecord.where(product_id: product_ids).delete_all
     Product.where(id: product_ids).delete_all
@@ -43,5 +45,7 @@ namespace :paginationtest do
     end
 
     puts "Done. paginationtest now has #{user.products.count} products (#{Product.scrapeable.where(user_id: user.id).count} scrapeable URLs)."
+  ensure
+    PriceRecord.alerter_callback_enabled = true if defined?(PriceRecord)
   end
 end

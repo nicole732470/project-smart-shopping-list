@@ -148,6 +148,14 @@ class Product < ApplicationRecord
         .where.not("source_url ILIKE ?", "%/s?k=%")
     }
 
+    # Products the nightly/manual refresh should actually scrape. Omits the
+    # pagination stress-test account — those rows exist for Pagy UI volume only.
+    PAGINATION_TEST_EMAIL = "paginationtest@example.com"
+
+    scope :refreshable, -> {
+      scrapeable.joins(:user).where.not(users: { email_address: PAGINATION_TEST_EMAIL })
+    }
+
     def self.scrape_excluded?(url)
       u = url.to_s
       return true if u.blank?

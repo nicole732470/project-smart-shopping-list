@@ -14,6 +14,8 @@ class AdminController < ApplicationController
   # products serially exceeds that, so the actual work runs in
   # RefreshPricesJob on the web dyno's async adapter.
   def refresh_prices
+    full_cycle = request.headers["X-Refresh-Mode"].to_s == "full-cycle"
+
     run = PriceRefreshRun.create!(
       triggered_by: request.headers["X-Trigger-Source"].presence || "unknown",
       status: "pending",
@@ -21,13 +23,15 @@ class AdminController < ApplicationController
       enqueued_at: Time.current
     )
 
-    RefreshPricesJob.perform_later(run.id)
+    RefreshPricesJob.perform_later(run.id, full_cycle: full_cycle)
     render json: {
       ok: true,
       status: "enqueued",
+      mode: full_cycle ? "full_cycle" : "batch",
       run_id: run.id,
       batch_size: RefreshSchedule.batch_size,
-      runs_per_cycle: RefreshSchedule.runs_per_cycle
+      runs_per_cycle: RefreshSchedule.runs_per_cycle,
+      refreshable_products: Product.refreshable.count
     }, status: :accepted
   end
 

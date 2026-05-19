@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Manual full-cycle refresh.** GitHub Actions *Run workflow* sends
+  `X-Refresh-Mode: full-cycle`; `RefreshPricesJob` runs batch after batch
+  immediately until every refreshable product is updated (one click, not 24).
+- **`Product.refreshable` scope.** Nightly and manual refresh target real
+  user-tracked PDPs only; `paginationtest@example.com` (Pagy volume) is excluded.
+- **`price_refresh_runs.batches_run`** column for multi-batch manual runs.
 - **Refresh batch observability.** Each cron/manual refresh creates a
   `price_refresh_runs` row; GitHub Actions polls `GET /admin/refresh_runs/:id`
   and writes attempted/succeeded/failed counts, duration, and failure details
@@ -24,10 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   2-hour UTC window (24 ticks). Heroku 30s HTTP limit no longer applies to the
   scrape work itself.
 - **`Product.scrapeable` scope.** Cron batches skip non-PDP URLs (`example.com`,
-  retailer search pages). `RefreshSchedule.batch_size` counts scrapeable products
-  only.
-- **GitHub Actions refresh workflow** waits for batch completion (poll + Summary)
-  instead of treating HTTP 202 alone as success.
+  retailer search pages).
+- **`Product.refreshable` + `RefreshSchedule`.** Batch sizing and
+  `PriceFetcher.refresh_batch` use refreshable count (~15 real products on prod,
+  not 1,265 pagination rows).
+- **GitHub Actions refresh workflow** waits for completion (poll up to 40 min for
+  manual full-cycle, 5 min for cron) and writes Summary with batches run.
 
 ### Fixed
 - Daily refresh 503 at stress-test scale (1265+ products) by moving work off the

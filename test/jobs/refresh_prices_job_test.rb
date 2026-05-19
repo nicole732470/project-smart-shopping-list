@@ -3,7 +3,7 @@ require "test_helper"
 class RefreshPricesJobTest < ActiveJob::TestCase
   setup do
     @product = products(:one)
-    @product.update_columns(source_url: "https://www.example.com/p/123", last_fetched_at: 2.days.ago)
+    @product.update_columns(source_url: "https://www.amazon.com/dp/B000TEST01", last_fetched_at: 2.days.ago)
     @run = PriceRefreshRun.create!(
       triggered_by: "manual",
       status: "pending",
@@ -25,7 +25,8 @@ class RefreshPricesJobTest < ActiveJob::TestCase
         failed: 0,
         stale_remaining: 0,
         failures: [],
-        duration: 0.1
+        duration: 0.1,
+        batches_run: 1
       }
     }) do
       RefreshPricesJob.perform_now(@run.id)
@@ -39,6 +40,33 @@ class RefreshPricesJobTest < ActiveJob::TestCase
     assert_equal "completed", @run.status
     assert_equal 1, @run.succeeded
     assert_not_nil @run.finished_at
+  end
+
+  test "full_cycle runs batches until stale_remaining is zero" do
+    calls = 0
+    stub_method(PriceFetcher, :refresh_batch, ->(**kwargs) {
+      calls += 1
+      stale = calls == 1 ? 2 : 0
+      {
+        total: 5,
+        catalog_with_url: 10,
+        batch_size: kwargs[:limit],
+        attempted: 1,
+        succeeded: 1,
+        failed: 0,
+        stale_remaining: stale,
+        failures: [],
+        duration: 0.1
+      }
+    }) do
+      RefreshPricesJob.perform_now(@run.id, full_cycle: true)
+    end
+
+    assert_equal 2, calls
+    @run.reload
+    assert_equal 2, @run.batches_run
+    assert_equal 2, @run.attempted
+    assert_equal 0, @run.stale_remaining
   end
 
   test "perform skips when advisory lock is not acquired" do

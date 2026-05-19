@@ -70,12 +70,29 @@ class AdminControllerTest < ActionDispatch::IntegrationTest
     assert_equal true, body["ok"]
     assert_equal "enqueued", body["status"]
     assert body["run_id"].present?
+    assert_equal "batch", body["mode"]
     assert_equal RefreshSchedule.batch_size, body["batch_size"]
     assert_equal RefreshSchedule.runs_per_cycle, body["runs_per_cycle"]
 
     run = PriceRefreshRun.find(body["run_id"])
     assert_equal "manual", run.triggered_by
     assert_equal "pending", run.status
+  end
+
+  test "POST with X-Refresh-Mode full-cycle enqueues job in full-cycle mode" do
+    assert_enqueued_with(job: RefreshPricesJob, args: ->(args) {
+      args.length == 2 && args[1][:full_cycle] == true
+    }) do
+      post "/admin/refresh_prices",
+           headers: {
+             "X-Admin-Token" => GOOD_TOKEN,
+             "X-Refresh-Mode" => "full-cycle"
+           }
+    end
+
+    assert_response :accepted
+    body = JSON.parse(response.body)
+    assert_equal "full_cycle", body["mode"]
   end
 
   test "GET /admin/refresh_runs/:id returns run JSON with admin token" do

@@ -198,4 +198,20 @@ class ProductTest < ActiveSupport::TestCase
     @product.source_url = "https://www.amazon.com/search?q=phone"
     refute @product.scrapeable?
   end
+
+  test "refreshable excludes pagination stress-test account" do
+    user = User.create!(
+      email_address: Product::PAGINATION_TEST_EMAIL,
+      password: "Pagy123!",
+      password_confirmation: "Pagy123!"
+    )
+    user.products.create!(
+      name: "Load test",
+      category: "Books",
+      source_url: "https://www.amazon.com/dp/B091G65HH6"
+    )
+
+    assert_equal 0, Product.refreshable.where(user_id: user.id).count
+    assert_equal 1, Product.scrapeable.where(user_id: user.id).count
+  end
 end

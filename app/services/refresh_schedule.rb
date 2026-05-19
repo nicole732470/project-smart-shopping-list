@@ -33,7 +33,7 @@ class RefreshSchedule
   end
 
   def self.batch_size
-    total = Product.scrapeable.count
+    total = Product.refreshable.count
     raw = (total.to_f / runs_per_cycle).ceil
     raw.clamp(1, max_batch)
   end

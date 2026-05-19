@@ -168,21 +168,23 @@ Over 24 ticks in the 2-hour window, the full **scrapeable** catalog is
 covered. When scrapeable product count doubles, `batch_size` doubles
 automatically — no code deploy required.
 
-### 4.1a Which products enter a refresh batch (`Product.scrapeable`)
+### 4.1a Which products enter a refresh batch (`Product.refreshable`)
 
-Cron batches **ignore** rows that are useful for pagination/UI volume but not
-real product-detail pages:
+Cron and manual refresh use **`Product.refreshable`**, not every row with a
+`source_url`:
 
-| Excluded | Example | Why |
-|---|---|---|
-| `example.com` hosts | `https://example.com/p/123` | Placeholder; always HTTP 404 |
-| Retailer search URLs | `…/search?q=…`, Amazon `/s?k=…` | Search results, not a PDP |
+| Included | Excluded |
+|---|---|
+| Real team/user products with PDP URLs | `paginationtest@example.com` (Pagy UI volume only) |
+| Passes `Product.scrapeable` checks | `example.com`, `/search?` placeholders |
 
-Everything else with a non-blank `source_url` is **scrapeable** and eligible for
-`refresh_batch` when stale (`last_fetched_at` null or older than `REFRESH_STALE_HOURS`).
+Implementation: [`Product.refreshable`](../app/models/product.rb). On production
+this is typically **~15 real products**, not 1,265 pagination rows.
 
-Implementation: [`Product.scrapeable` scope](../app/models/product.rb). Batch sizing
-in [`RefreshSchedule`](../app/services/refresh_schedule.rb) uses the same scope.
+**Manual Run workflow** sends `X-Refresh-Mode: full-cycle` — one job runs batch
+after batch **immediately** (no 5-minute gap) until `stale_remaining` is zero.
+
+**Nightly cron** sends `X-Refresh-Mode: batch` — one batch per 5-minute tick.
 
 ### 4.1b Seed & load-test data (real PDP URLs)
 

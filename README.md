@@ -73,29 +73,27 @@ page on the index). Pagination is provided by [Pagy](https://github.com/ddnexus/
 
 ## Automatic daily price refresh
 
-Every **scrapeable** product (real PDP `source_url`; see
-[`Product.scrapeable`][scrapeable] in `app/models/product.rb`) is re-scraped on a
-nightly schedule so the price-history chart stays fresh without anyone clicking
-*Fetch latest price* by hand. Load-test rows with non-PDP URLs are skipped.
+Every **refreshable** product (real user-tracked PDPs; excludes the
+pagination stress-test account) is re-scraped on a nightly schedule. See
+[`Product.refreshable`][refreshable] in `app/models/product.rb`.
 
-[scrapeable]: app/models/product.rb
+[refreshable]: app/models/product.rb
 
-- **Schedule** — [`.github/workflows/refresh-prices.yml`](.github/workflows/refresh-prices.yml)
-  runs every 5 minutes during UTC hours 7–8 (≈ 2:00–3:55 AM Chicago CDT) and can
-  also be triggered manually from the *Actions* tab.
+- **Manual Run (Actions → Run workflow)** — **full-cycle** mode: one click runs
+  **all batches back-to-back** (no 5-minute wait, no 24 clicks) until every
+  refreshable product is updated or none remain stale.
+- **Nightly cron** — one batch per 5-minute tick (24 ticks in the 2-hour window).
 - **Trigger** — the workflow `POST`s to `/admin/refresh_prices` with
   `X-Admin-Token` and `X-Trigger-Source` (`schedule` or `manual`).
 - **Worker** — `AdminController#refresh_prices` returns **202 Accepted** immediately,
   creates a [`PriceRefreshRun`](app/models/price_refresh_run.rb) row, and enqueues
   `RefreshPricesJob`, which calls `PriceFetcher.refresh_batch` with a limit from
-  [`RefreshSchedule`](app/services/refresh_schedule.rb) based on **scrapeable**
-  product count (auto-scales; default window covers the catalog in ~24 batches).
-- **Observability** — the workflow polls `GET /admin/refresh_runs/:id` (same token)
-  for up to ~3 minutes, then writes a markdown report to the GitHub Actions
-  **Summary** tab: attempted / succeeded / failed / duration / stale remaining /
-  per-product failure messages. A green workflow step means the batch **finished**
-  (not that every scrape succeeded). Poll timeout can occur on large batches even
-  when the job completes on Heroku — check Summary or `PriceRefreshRun` in the DB.
+  [`RefreshSchedule`](app/services/refresh_schedule.rb) based on **refreshable**
+  product count. Manual runs loop batches until done; cron runs one batch per tick.
+- **Observability** — the workflow polls `GET /admin/refresh_runs/:id` (up to ~40
+  minutes for manual full-cycle, ~5 minutes for cron), then writes a markdown
+  report to the GitHub Actions **Summary** tab (batches run, attempted /
+  succeeded / failed, stale remaining, failure list).
 - **Dedup** — a new `PriceRecord` is written **only when the price has actually
   changed**. Per-product failures go to `product.last_fetch_error` and never
   crash the batch.
@@ -107,7 +105,7 @@ is portable if we migrate off Heroku — only `APP_URL` would change.
 For setup, tuning ENV vars, the site-support matrix, seed/load-test notes, and
 troubleshooting, see:
 
-- [`docs/scrapers.md`](docs/scrapers.md) — architecture, batch flow, `Product.scrapeable`.
+- [`docs/scrapers.md`](docs/scrapers.md) — architecture, batch flow, `Product.refreshable`.
 - [`docs/database.md`](docs/database.md) — `price_refresh_runs` table.
 - [`wiki.md` § Scheduled tasks](wiki.md) — one-time secret setup and manual verification.
 
