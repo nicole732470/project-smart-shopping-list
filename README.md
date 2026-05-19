@@ -55,22 +55,24 @@ On Heroku there's also a legacy `paginationtest@example.com` (password `Pagy123!
 
 ## Automatic daily price refresh
 
-Every product with a `source_url` is re-scraped once a day so the
+Every product with a `source_url` is re-scraped on a nightly schedule so the
 price-history chart stays fresh without anyone clicking *Fetch latest
 price* by hand.
 
-- **Schedule** — `.github/workflows/refresh-prices.yml` runs at 09:00 UTC
-  daily and can also be triggered manually from the *Actions* tab.
+- **Schedule** — `.github/workflows/refresh-prices.yml` runs every 5
+  minutes during UTC hours 7–8 (≈ 2:00–3:55 AM Chicago CDT) and can also
+  be triggered manually from the *Actions* tab.
 - **Trigger** — the workflow `POST`s to `/admin/refresh_prices` on the
   deployed app, authenticated by a shared secret (`X-Admin-Token` header,
   matched against `ENV["ADMIN_REFRESH_TOKEN"]` via constant-time compare).
-- **Worker** — `AdminController#refresh_prices` calls
-  `PriceFetcher.refresh_all`, which iterates every eligible product, calls
-  the appropriate `PriceScrapers` adapter, and writes a new `PriceRecord`
-  **only when the price has actually changed** (dedup). A per-product
-  failure (timeout, 403 from Cloudflare/Akamai/PerimeterX-protected sites,
-  unparseable HTML, …) is captured in `product.last_fetch_error` and never
-  crashes the run.
+- **Worker** — `AdminController#refresh_prices` returns **202 Accepted**
+  immediately and enqueues `RefreshPricesJob`, which calls
+  `PriceFetcher.refresh_batch` with a limit auto-calculated by
+  `RefreshSchedule` from the current product count. Over 24 ticks in the
+  2-hour window the full catalog is covered. A new `PriceRecord` is written
+  **only when the price has actually changed** (dedup). Per-product
+  failures are captured in `product.last_fetch_error` and never crash the
+  cron tick.
 
 We picked GitHub Actions cron over Solid Queue + a Heroku worker dyno
 because it stays inside the GitHub Student `$13/month` credit, keeps the

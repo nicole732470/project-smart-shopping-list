@@ -12,7 +12,8 @@ on Heroku, and what is known to work today.
 flowchart LR
     Controller["ProductsController#create<br/>or #fetch_price"] --> Facade["PriceScrapers.fetch(url)"]
     Cron["GitHub Actions cron<br/>(.github/workflows/<br/>refresh-prices.yml)"] -->|"POST /admin/refresh_prices<br/>X-Admin-Token: ..."| Admin["AdminController#refresh_prices"]
-    Admin --> Fetcher["PriceFetcher.refresh_all"]
+    Admin -->|"202 Accepted"| Job["RefreshPricesJob"]
+    Job --> Fetcher["PriceFetcher.refresh_batch"]
     Fetcher --> Facade
     Facade --> Reg["Registry.for(url)"]
     Reg -->|"amazon.*"| Amazon[AmazonAdapter]
@@ -28,15 +29,18 @@ Three triggers, one core path:
   entry in the same form.
 - **B. Manual "Fetch latest price" button** — synchronous, blocks the click.
   Lives in `ProductsController#fetch_price`.
-- **C. Daily GitHub Actions cron** — fires at 09:00 UTC every day. The
-  workflow `curl`s `POST /admin/refresh_prices` with a shared
-  `X-Admin-Token` header; `AdminController` validates the token and invokes
-  `PriceFetcher.refresh_all`, which iterates every product with a
-  `source_url`. See section 4 for setup.
+- **C. GitHub Actions cron** — every 5 minutes during a 2-hour nightly
+  window (UTC 7–8 ≈ 2:00–3:55 AM Chicago CDT). The workflow `curl`s
+  `POST /admin/refresh_prices`; `AdminController` validates the token,
+  enqueues `RefreshPricesJob`, and returns **202 Accepted** immediately.
+  The job calls `PriceFetcher.refresh_batch` with a limit computed by
+  [`RefreshSchedule`](../app/services/refresh_schedule.rb) from the current
+  product count. See section 4 for setup.
 
-There is no Solid Queue, no worker dyno, and no `FetchPriceJob`. Every
-"trigger" calls into `PriceFetcher.call` directly, on the web dyno, in the
-request that hit it. Failures are caught and written to
+Triggers A and B call `PriceFetcher.call` synchronously in the web request.
+Trigger C is **async + batched** because Heroku web requests must finish
+within 30 seconds — scraping thousands of products serially exceeds that.
+Failures on individual products are caught and written to
 `product.last_fetch_error`, never propagated to the user.
 
 Why GitHub Actions instead of a Rails-internal scheduler?
@@ -128,43 +132,55 @@ Both are subclasses of `PriceScrapers::Error`, which the controllers and
 
 ## 4. Daily refresh via GitHub Actions cron
 
-The schedule itself lives in
+The schedule lives in
 [`.github/workflows/refresh-prices.yml`](../.github/workflows/refresh-prices.yml).
-It runs at 09:00 UTC every day and `POST`s to
-`/admin/refresh_prices` on the deployed app, authenticated with a
-shared secret in the `X-Admin-Token` header.
+It runs **every 5 minutes during UTC hours 7–8** (≈ 2:00–3:55 AM Chicago
+CDT; use hours 8–9 UTC during CST) and `POST`s to `/admin/refresh_prices`,
+authenticated with a shared secret in the `X-Admin-Token` header.
 
-### 4.1 Request flow (one cron run, end-to-end)
+### 4.1 Request flow (one cron tick, end-to-end)
 
 ```
-1. GitHub Actions runner spins up an Ubuntu container (free tier minutes).
-2. The single step runs:
-     curl --fail-with-body \
-          -X POST "$APP_URL/admin/refresh_prices" \
-          -H "X-Admin-Token: $ADMIN_REFRESH_TOKEN"
+1. GitHub Actions runner spins up an Ubuntu container.
+2. curl POST /admin/refresh_prices with X-Admin-Token.
 3. Heroku router → Rails on the web dyno.
 4. AdminController#refresh_prices:
-     a. allow_unauthenticated_access  — bypasses cookie/session auth
-     b. skip_forgery_protection       — bypasses CSRF (no Rails-issued token)
-     c. authenticate_admin_token!     — secure_compare against ENV var.
-        Fails closed if the env var is unset (returns 401).
-     d. PriceFetcher.refresh_all
-            → for each product with a source_url:
-                  PriceScrapers.fetch(url) via the right adapter
-                  → write a new PriceRecord ONLY if price changed (dedup)
-                  → update last_fetched_at (always)
-                  → update last_fetch_error (cleared on success)
-     e. render JSON: { ok: true, succeeded:, failed:, duration: }
-5. curl receives 200 + the summary JSON, which GitHub logs to the run page.
+     a. authenticate_admin_token! (secure_compare; fail-closed)
+     b. RefreshPricesJob.perform_later
+     c. render 202 { ok, status: "enqueued", batch_size, runs_per_cycle }
+5. curl sees HTTP 202 within ~1s → workflow green.
+
+Meanwhile on the web dyno (async adapter):
+6. RefreshPricesJob acquires a PostgreSQL advisory lock (skip if overlap).
+7. limit = RefreshSchedule.batch_size
+      (= ceil(product_count / runs_per_cycle), auto-scales with load)
+8. PriceFetcher.refresh_batch(limit:, min_age: 23.hours)
+      → stalest products first, serial scrape per product, no sleep
+      → write PriceRecord only if price changed (dedup)
+9. Log summary: { total, batch_size, succeeded, failed, duration }
 ```
 
-A failure inside any single product (timeout, 403, parse error, etc.) is
-caught in `PriceFetcher.call` and stored on that product's
-`last_fetch_error`. The cron run itself is still considered green — it
-processed every product, some just failed. This is intentional: a Free
-People 403 should not mask the fact that lululemon refreshed correctly.
+Over 24 ticks in the 2-hour window, the full catalog is covered even at
+stress-test scale (~1265+ products). When product count doubles,
+`batch_size` doubles automatically — no code deploy required.
 
-### 4.2 One-time setup
+`PriceFetcher.refresh_all` remains available for CLI/emergency use:
+`bin/rails runner "PriceFetcher.refresh_all"`.
+
+Per-product failures (timeout, 403, parse error) are caught in
+`PriceFetcher.call` and stored on `last_fetch_error`. The cron tick itself
+stays green as long as the endpoint returns 202.
+
+### 4.2 Tuning (ENV vars on Heroku)
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `REFRESH_WINDOW_HOURS` | 2 | Target hours to cover full catalog |
+| `REFRESH_INTERVAL_MINUTES` | 5 | Cron cadence inside the window |
+| `REFRESH_STALE_HOURS` | 23 | Skip products fetched more recently |
+| `REFRESH_BATCH_MAX` | 500 | Safety cap per batch |
+
+### 4.3 One-time setup
 
 1. **Generate a strong shared secret:**
    ```bash
@@ -186,30 +202,21 @@ People 403 should not mask the fact that lululemon refreshed correctly.
 
 4. **Verify by manually triggering a run.** GitHub repo → *Actions* tab →
    *Daily price refresh* → *Run workflow*. The job should finish green
-   within a few minutes, and `heroku logs --tail -a smart-shoppinglist`
-   should show `[PriceFetcher] refresh_all started/finished` lines.
+   within seconds (HTTP 202). Check progress in Heroku logs:
+   `heroku logs --tail -a smart-shoppinglist` — look for
+   `[RefreshPricesJob]` and `[PriceFetcher] refresh_batch finished`.
 
-### 4.3 Switching from `refresh_all` to `refresh_stale`
+### 4.4 Scaling path (L2+)
 
-- **Few products (default):** `refresh_all` re-checks every product on
-  every run. The dedup logic in `PriceFetcher.call` keeps the price
-  history clean even if nothing actually changed.
-- **Many products, or to save retailer politeness budget:**
-  `refresh_stale(min_age: 23.hours)` only re-checks products whose
-  `last_fetched_at` is older than the threshold.
+The cron path uses Rails' `:async` adapter on the web dyno (no worker
+required). When product count grows beyond what one dyno can scrape in the
+window, upgrade to Solid Queue + a worker dyno — `RefreshPricesJob` and
+`PriceFetcher.call` stay unchanged; only infrastructure and ENV change.
 
-To switch, change the action body in `AdminController#refresh_prices`:
-```ruby
-summary = PriceFetcher.refresh_stale(min_age: 23.hours)
-```
-No deploy is needed for the workflow itself; only the controller changes.
+### 4.5 Cost
 
-### 4.4 Cost
-
-- **GitHub Actions:** free under both the public-repo unlimited tier and
-  the personal-account 2,000-minutes/month private-repo tier. One run
-  takes 1–3 minutes wall-clock, mostly the per-product `sleep 1`. Daily
-  runs ≈ 90 minutes/month at the high end.
+- **GitHub Actions:** free under the GitHub Student credit. Each tick is
+  ~5–15 seconds (curl waits for 202 only). 24 ticks/night ≈ 6 minutes/night.
 - **Heroku:** zero additional cost beyond the existing `Eco web $5 + Mini
   Postgres $5 = $10/month`. No worker dyno, no Scheduler add-on, no
   one-off dyno hours consumed.

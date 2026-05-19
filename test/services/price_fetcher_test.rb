@@ -191,4 +191,48 @@ class PriceFetcherTest < ActiveSupport::TestCase
       end
     end
   end
+
+  # ---------- refresh_batch (cron job entry point) ----------
+
+  test ".refresh_batch refreshes up to limit stale products oldest-first" do
+    stale = Product.create!(
+      user: users(:one), name: "Stale", category: "Electronics",
+      source_url: "https://example.com/stale", last_fetched_at: 3.days.ago
+    )
+    fresh = Product.create!(
+      user: users(:one), name: "Fresh", category: "Electronics",
+      source_url: "https://example.com/fresh", last_fetched_at: 1.hour.ago
+    )
+
+    fetched = []
+    stub_method(PriceScrapers, :fetch, ->(url, **_opts) {
+      fetched << url
+      PriceScrapers::Result.new(
+        price: BigDecimal("10.00"), title: "X", image_url: nil,
+        store_name: "X", fetched_at: Time.current
+      )
+    }) do
+      summary = PriceFetcher.refresh_batch(limit: 10, min_age: 1.day, sleep_between: 0)
+      assert_includes summary.keys, :total
+      assert_includes summary.keys, :batch_size
+      assert_includes summary.keys, :runs_per_cycle
+    end
+
+    assert_includes fetched, stale.source_url
+    refute_includes fetched, fresh.source_url
+  end
+
+  test ".refresh_batch returns summary with succeeded and failed counts" do
+    stub_method(PriceScrapers, :fetch, ->(_url, **_opts) {
+      PriceScrapers::Result.new(
+        price: BigDecimal("10.00"), title: "X", image_url: nil,
+        store_name: "X", fetched_at: Time.current
+      )
+    }) do
+      summary = PriceFetcher.refresh_batch(limit: 5, min_age: 1.day, sleep_between: 0)
+      assert_kind_of Integer, summary[:succeeded]
+      assert_kind_of Integer, summary[:failed]
+      assert_kind_of Float, summary[:duration]
+    end
+  end
 end

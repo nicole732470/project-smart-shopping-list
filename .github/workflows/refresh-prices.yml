@@ -1,9 +1,12 @@
 name: Daily price refresh
 
-# Hits the deployed app's /admin/refresh_prices webhook once a day so that
-# every product's latest price is re-scraped without anyone clicking the
-# "Fetch latest price" button. PriceFetcher.refresh_all already de-dupes
-# unchanged prices, so a daily run is safe even when nothing has changed.
+# Hits the deployed app's /admin/refresh_prices webhook on a schedule so
+# stale product prices are re-scraped without anyone clicking "Fetch latest
+# price". The endpoint returns 202 immediately and enqueues a batched
+# RefreshPricesJob; batch size scales automatically with product count.
+#
+# Schedule: every 5 minutes during UTC hours 7–8 (~2:00–3:55 AM Chicago CDT).
+# During CST (winter), shift to hours 8–9 UTC. GitHub cron is UTC-only.
 #
 # Required repo secrets (Settings → Secrets and variables → Actions):
 #   APP_URL              e.g. https://smart-shoppinglist-6ae31171e85c.herokuapp.com
@@ -12,18 +15,14 @@ name: Daily price refresh
 
 on:
   schedule:
-    # 09:00 UTC = 03:00 / 04:00 US Central (depending on DST). Pick a low-
-    # traffic hour so the scrape doesn't compete with real users for the
-    # single web dyno.
-    - cron: "0 9 * * *"
-  # Lets you trigger a run by hand from the Actions tab — useful for
-  # verifying the wiring without waiting until tomorrow morning.
+    # 24 runs in a 2-hour window (07:00–08:55 UTC ≈ 2:00–3:55 AM Chicago CDT).
+    - cron: "*/5 7-8 * * *"
   workflow_dispatch:
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 2
 
     steps:
       - name: Hit refresh endpoint
@@ -37,10 +36,17 @@ jobs:
           fi
 
           echo "POST $APP_URL/admin/refresh_prices"
-          curl --fail-with-body \
-               --silent --show-error \
-               --max-time 540 \
+          http_code=$(curl --silent --show-error --output /tmp/refresh_body \
+               --write-out "%{http_code}" \
+               --max-time 30 \
                -X POST "$APP_URL/admin/refresh_prices" \
                -H "X-Admin-Token: $ADMIN_REFRESH_TOKEN" \
-               -H "Accept: application/json"
+               -H "Accept: application/json")
+          echo "HTTP $http_code"
+          cat /tmp/refresh_body
           echo
+
+          if [ "$http_code" -eq 202 ] || [ "$http_code" -eq 200 ]; then
+            exit 0
+          fi
+          exit 1

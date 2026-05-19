@@ -9,14 +9,18 @@ class AdminController < ApplicationController
 
   # POST /admin/refresh_prices
   #
-  # Triggers PriceFetcher.refresh_all synchronously and returns a small JSON
-  # summary the cron job can log. Synchronous is fine here because (a) the
-  # set of products is small and (b) GitHub Actions has a generous job
-  # timeout. If product count grows large, switch to refresh_stale or move
-  # the work into ActiveJob.
+  # Enqueues a batched background refresh and returns immediately (202).
+  # Heroku web requests must finish within 30s; scraping thousands of
+  # products serially exceeds that, so the actual work runs in
+  # RefreshPricesJob on the web dyno's async adapter.
   def refresh_prices
-    summary = PriceFetcher.refresh_all
-    render json: { ok: true }.merge(summary)
+    RefreshPricesJob.perform_later
+    render json: {
+      ok: true,
+      status: "enqueued",
+      batch_size: RefreshSchedule.batch_size,
+      runs_per_cycle: RefreshSchedule.runs_per_cycle
+    }, status: :accepted
   end
 
   private

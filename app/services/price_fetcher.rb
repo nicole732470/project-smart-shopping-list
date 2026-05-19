@@ -44,11 +44,42 @@ class PriceFetcher
     product
   end
 
-  # Refresh every product that has a source_url. Use this when products are
-  # few and you want each scheduler run to truly re-check them all.
+  # Refresh up to `limit` stale products, oldest-first. Used by RefreshPricesJob
+  # on each cron tick. Batch size is computed by RefreshSchedule from the
+  # current product count so the catalog is covered within the refresh window
+  # without redeploying when load grows.
+  def self.refresh_batch(limit:, min_age: 23.hours, sleep_between: 0)
+    started_at = Time.current
+    total = Product.where.not(source_url: nil).count
+
+    scope = Product.where.not(source_url: nil)
+                   .where("last_fetched_at IS NULL OR last_fetched_at < ?", min_age.ago)
+                   .order(Arel.sql("last_fetched_at ASC NULLS FIRST"))
+                   .limit(limit)
+
+    succeeded = failed = 0
+    scope.find_each do |product|
+      call(product)
+      product.last_fetch_error.present? ? failed += 1 : succeeded += 1
+      sleep sleep_between if sleep_between.positive?
+    end
+
+    duration = (Time.current - started_at).round(1)
+    summary = {
+      total: total,
+      batch_size: limit,
+      runs_per_cycle: RefreshSchedule.runs_per_cycle,
+      succeeded: succeeded,
+      failed: failed,
+      duration: duration
+    }
+    Rails.logger.info("[PriceFetcher] refresh_batch finished — #{summary.inspect}")
+    summary
+  end
+
+  # Refresh every product that has a source_url. CLI / emergency use only —
+  # the cron path enqueues RefreshPricesJob instead (async + batched).
   #
-  # Triggered daily by .github/workflows/refresh-prices.yml, which POSTs to
-  # AdminController#refresh_prices. Also runnable manually:
   #   bin/rails runner "PriceFetcher.refresh_all"
   def self.refresh_all
     started_at = Time.current

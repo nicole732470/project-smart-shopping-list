@@ -120,7 +120,7 @@ heroku run rails db:migrate -a smart-shoppinglist
 
 ### Scheduled tasks (daily price refresh)
 
-Each product's latest price is re-scraped once a day so the price-history
+Each product's latest price is re-scraped on a schedule so the price-history
 chart stays current without anyone clicking "Fetch latest price" by hand.
 
 We run the schedule from **GitHub Actions cron** rather than from a Heroku
@@ -130,13 +130,21 @@ if we ever migrate off Heroku — only `APP_URL` would need to change.
 
 **How it works:**
 
-1. `.github/workflows/refresh-prices.yml` runs daily at 09:00 UTC.
+1. `.github/workflows/refresh-prices.yml` runs **every 5 minutes during
+   UTC hours 7–8** (≈ 2:00–3:55 AM Chicago CDT).
 2. It POSTs to `https://<app>/admin/refresh_prices` with an
    `X-Admin-Token` header.
-3. `AdminController#refresh_prices` checks the token and calls
-   `PriceFetcher.refresh_all`, which iterates every product with a
-   `source_url` and writes a new `PriceRecord` only when the price has
-   actually changed (so the chart isn't polluted with duplicates).
+3. `AdminController#refresh_prices` checks the token, enqueues
+   `RefreshPricesJob`, and returns **202 Accepted** immediately (Heroku
+   web requests must finish within 30 seconds).
+4. The job calls `PriceFetcher.refresh_batch` with a limit computed by
+   `RefreshSchedule` from the current product count — batch size scales
+   automatically when load grows. Over 24 ticks in the 2-hour window the
+   full catalog is covered. A new `PriceRecord` is written only when the
+   price has actually changed.
+
+**Tuning (Heroku config vars):** `REFRESH_WINDOW_HOURS=2`,
+`REFRESH_INTERVAL_MINUTES=5`, `REFRESH_STALE_HOURS=23`, `REFRESH_BATCH_MAX=500`.
 
 **One-time setup:**
 
@@ -156,10 +164,10 @@ heroku config:set ADMIN_REFRESH_TOKEN=<the-secret> -a smart-shoppinglist
 **Verifying it works:**
 
 - **Manual trigger:** GitHub → Actions tab → "Daily price refresh" →
-  "Run workflow". The job should finish green within a few minutes.
+  "Run workflow". The job should finish green within seconds (HTTP 202).
 - **Watch the app logs:** `heroku logs --tail -a smart-shoppinglist`.
-  Look for lines tagged `[PriceFetcher] refresh_all started/finished`.
-- **Local sanity check:**
+  Look for `[RefreshPricesJob]` and `[PriceFetcher] refresh_batch finished`.
+- **CLI full refresh (emergency):**
   ```bash
   bin/rails runner "PriceFetcher.refresh_all"
   ```
