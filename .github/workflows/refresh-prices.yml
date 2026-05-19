@@ -23,7 +23,7 @@ on:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
 
     steps:
       - name: Trigger refresh batch
@@ -65,7 +65,7 @@ jobs:
           RUN_ID: ${{ steps.trigger.outputs.run_id }}
         run: |
           set -euo pipefail
-          deadline=$((SECONDS + 180))
+          deadline=$((SECONDS + 300))
           status="pending"
 
           while [ "$SECONDS" -lt "$deadline" ]; do
@@ -91,16 +91,28 @@ jobs:
 
           echo "final_status=$status" >> "$GITHUB_OUTPUT"
           if [ "$status" = "pending" ] || [ "$status" = "running" ]; then
-            echo "::error::Batch did not finish within 3 minutes (last status: $status)."
+            echo "::error::Batch did not finish within 5 minutes (last status: $status)."
             exit 1
           fi
 
       - name: Write batch report to job summary
         if: always() && steps.trigger.outputs.run_id != ''
         env:
+          APP_URL: ${{ secrets.APP_URL }}
+          ADMIN_REFRESH_TOKEN: ${{ secrets.ADMIN_REFRESH_TOKEN }}
           RUN_ID: ${{ steps.trigger.outputs.run_id }}
           FINAL_STATUS: ${{ steps.wait.outputs.final_status }}
         run: |
+          if [ ! -f /tmp/run_status.json ] || [ "${FINAL_STATUS:-}" = "pending" ] || [ "${FINAL_STATUS:-}" = "running" ]; then
+            http_code=$(curl --silent --show-error --output /tmp/run_status.json \
+                 --write-out "%{http_code}" \
+                 --max-time 30 \
+                 "$APP_URL/admin/refresh_runs/$RUN_ID" \
+                 -H "X-Admin-Token: $ADMIN_REFRESH_TOKEN" \
+                 -H "Accept: application/json" || true)
+            echo "Final poll HTTP $http_code"
+          fi
+
           if [ ! -f /tmp/run_status.json ]; then
             echo "## Price refresh — no status received" >> "$GITHUB_STEP_SUMMARY"
             echo "Run **#$RUN_ID** was enqueued but polling did not return a result." >> "$GITHUB_STEP_SUMMARY"
