@@ -46,12 +46,17 @@ After running `bin/rails db:seed` the following accounts are available:
 
 | Email | Password | Notes |
 |---|---|---|
-| `demo@example.com` | `Demo1234!` | Curated demo data, ~30 products with realistic price history |
-| `shopper1@example.com` … `shopper39@example.com` | `Shopper!#{n}A#{((n-1) % 9) + 1}z` | 39 load-test users, each with ~30 products and 6–10 price records per product — together they push the dataset past 1,200 products and ~9,600 price records so pagination and list performance are visible |
+| `demo@example.com` | `TrackSave!123` | Full real-product catalog (49 unique PDP URLs) |
+| `shopper1@example.com` … `shopper39@example.com` | `Shopper!#{n}A#{((n-1) % 9) + 1}z` | 39 load-test users × 30 products each — catalog cycles so pagination stays >1,000 rows |
+| `paginationtest@example.com` | `Pagy123!` | 1,250 products for Pagy stress tests (same real PDP catalog, recreated by `db:seed`) |
 
-Sign in as any of the shoppers to see paginated lists in action. Pagination is provided by [Pagy](https://github.com/ddnexus/pagy) — products index paginates at 24 per page, the per-product price ledger at 20 per page.
+All seeded `source_url` values point at **real retailer product detail pages** (Amazon `/dp/…`, Best Buy `/site/…/….p`, etc.), not `example.com` placeholders or `/search?` links. Re-seed locally with `bin/rails db:seed:replant`.
 
-On Heroku there's also a legacy `paginationtest@example.com` (password `Pagy123!`) account with 1,250 products and ~6,900 price records — that one was inserted directly into production and isn't recreated by the seed task locally.
+On Heroku, team members' accounts are **not** overwritten by seed. To fix only the legacy pagination account in place:
+
+```sh
+heroku run bin/rails paginationtest:reseed_real_urls -a smart-shoppinglist
+```
 
 ## Automatic daily price refresh
 
