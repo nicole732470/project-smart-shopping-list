@@ -155,9 +155,9 @@ authenticated with a shared secret in the `X-Admin-Token` header.
 Meanwhile on the web dyno (async adapter):
 6. RefreshPricesJob acquires a PostgreSQL advisory lock (skip if overlap).
 7. limit = RefreshSchedule.batch_size
-      (= ceil(product_count / runs_per_cycle), auto-scales with load)
+      (= ceil(scrapeable_product_count / runs_per_cycle); see Product.scrapeable)
 8. PriceFetcher.refresh_batch(limit:, min_age: 23.hours)
-      → stalest products first, serial scrape per product, no sleep
+      → only Product.scrapeable rows; stalest first; serial scrape; no sleep
       → write PriceRecord only if price changed (dedup)
 9. Update PriceRefreshRun with summary; log { total, attempted, succeeded,
       failed, stale_remaining, duration, failures[] }
@@ -165,11 +165,57 @@ Meanwhile on the web dyno (async adapter):
 ```
 
 Over 24 ticks in the 2-hour window, the full **scrapeable** catalog is
-covered even when load-test rows (example.com placeholders, `/search?` seed
-URLs) remain in the database for pagination stress tests. Those rows are
-skipped by `Product.scrapeable` and never enter a refresh batch. When
-scrapeable product count doubles, `batch_size` doubles automatically — no
-code deploy required.
+covered. When scrapeable product count doubles, `batch_size` doubles
+automatically — no code deploy required.
+
+### 4.1a Which products enter a refresh batch (`Product.scrapeable`)
+
+Cron batches **ignore** rows that are useful for pagination/UI volume but not
+real product-detail pages:
+
+| Excluded | Example | Why |
+|---|---|---|
+| `example.com` hosts | `https://example.com/p/123` | Placeholder; always HTTP 404 |
+| Retailer search URLs | `…/search?q=…`, Amazon `/s?k=…` | Search results, not a PDP |
+
+Everything else with a non-blank `source_url` is **scrapeable** and eligible for
+`refresh_batch` when stale (`last_fetched_at` null or older than `REFRESH_STALE_HOURS`).
+
+Implementation: [`Product.scrapeable` scope](../app/models/product.rb). Batch sizing
+in [`RefreshSchedule`](../app/services/refresh_schedule.rb) uses the same scope.
+
+### 4.1b Seed & load-test data (real PDP URLs)
+
+Local and CI seeds ([`db/seeds.rb`](../db/seeds.rb)) pull from
+[`db/seeds/real_product_catalog.rb`](../db/seeds/real_product_catalog.rb) — 49
+unique retailer PDP links (Amazon, Best Buy, Walmart, Lululemon, etc.), cycled to
+ exceed 1,000 products for Pagy stress tests.
+
+**Production:** do **not** run `db:seed:replant` on Heroku (destroys real users).
+To replace only the pagination account:
+
+```bash
+heroku run bin/rails paginationtest:reseed_real_urls -a smart-shoppinglist
+```
+
+See [`lib/tasks/paginationtest.rake`](../lib/tasks/paginationtest.rake). Team members'
+manually tracked products are never touched.
+
+### 4.1c Batch observability (`price_refresh_runs` + Actions Summary)
+
+Each cron/manual trigger creates a [`PriceRefreshRun`](../app/models/price_refresh_run.rb)
+row (status, attempted/succeeded/failed counts, duration, JSON failure details).
+Admin poll endpoint: `GET /admin/refresh_runs/:id` (same `X-Admin-Token`).
+
+The GitHub workflow writes a human-readable report to the run **Summary** tab.
+Interpreting results:
+
+- **HTTP 202** on POST = job enqueued, not finished.
+- **Succeeded / Failed** = per-product scrape outcomes in that batch (403, missing
+  JSON-LD, and timeouts are common on Heroku cloud IPs — not necessarily bugs).
+- **Workflow red + "did not finish within 3 minutes"** — poll timed out; the batch
+  may still complete on Heroku. Check the latest `PriceRefreshRun` or re-open Summary
+  after the job finishes (~3 min for a full batch of ~53 serial scrapes).
 
 `PriceFetcher.refresh_all` remains available for CLI/emergency use:
 `bin/rails runner "PriceFetcher.refresh_all"`.

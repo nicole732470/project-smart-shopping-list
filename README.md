@@ -50,49 +50,66 @@ After running `bin/rails db:seed` the following accounts are available:
 | `shopper1@example.com` … `shopper39@example.com` | `Shopper!#{n}A#{((n-1) % 9) + 1}z` | 39 load-test users × 30 products each — catalog cycles so pagination stays >1,000 rows |
 | `paginationtest@example.com` | `Pagy123!` | 1,250 products for Pagy stress tests (same real PDP catalog, recreated by `db:seed`) |
 
-All seeded `source_url` values point at **real retailer product detail pages** (Amazon `/dp/…`, Best Buy `/site/…/….p`, etc.), not `example.com` placeholders or `/search?` links. Re-seed locally with `bin/rails db:seed:replant`.
+All seeded `source_url` values point at **real retailer product detail pages**
+(Amazon `/dp/…`, Best Buy `/site/…/….p`, Walmart `/ip/…`, Lululemon, etc.).
+The canonical list lives in [`db/seeds/real_product_catalog.rb`](db/seeds/real_product_catalog.rb)
+(49 unique PDP URLs, cycled for volume). Seeds **do not** use `example.com`
+placeholders or retailer `/search?` links.
 
-On Heroku, team members' accounts are **not** overwritten by seed. To fix only the legacy pagination account in place:
+Re-seed locally with `bin/rails db:seed:replant` (wipes **all** local users/products).
+
+**Production:** never run `db:seed:replant` on Heroku — it would delete real team
+accounts. To replace only the pagination stress-test account in place:
 
 ```sh
 heroku run bin/rails paginationtest:reseed_real_urls -a smart-shoppinglist
 ```
 
+This task touches **only** `paginationtest@example.com` (1,250 products). All other
+users and their manually added products are left unchanged.
+
+Sign in as any `shopperN@example.com` to exercise Pagy pagination (24 products per
+page on the index). Pagination is provided by [Pagy](https://github.com/ddnexus/pagy).
+
 ## Automatic daily price refresh
 
-Every product with a `source_url` is re-scraped on a nightly schedule so the
-price-history chart stays fresh without anyone clicking *Fetch latest
-price* by hand.
+Every **scrapeable** product (real PDP `source_url`; see
+[`Product.scrapeable`][scrapeable] in `app/models/product.rb`) is re-scraped on a
+nightly schedule so the price-history chart stays fresh without anyone clicking
+*Fetch latest price* by hand. Load-test rows with non-PDP URLs are skipped.
 
-- **Schedule** — `.github/workflows/refresh-prices.yml` runs every 5
-  minutes during UTC hours 7–8 (≈ 2:00–3:55 AM Chicago CDT) and can also
-  be triggered manually from the *Actions* tab.
-- **Trigger** — the workflow `POST`s to `/admin/refresh_prices` on the
-  deployed app, authenticated by a shared secret (`X-Admin-Token` header,
-  matched against `ENV["ADMIN_REFRESH_TOKEN"]` via constant-time compare).
-- **Worker** — `AdminController#refresh_prices` returns **202 Accepted**
-  immediately and enqueues `RefreshPricesJob`, which calls
-  `PriceFetcher.refresh_batch` with a limit auto-calculated by
-  `RefreshSchedule` from the current product count. Each run is recorded in
-  `price_refresh_runs`; the workflow polls until the batch finishes and writes
-  a report to the GitHub Actions **Summary** tab (attempted, succeeded,
-  failed, duration, failure list). Over 24 ticks in the 2-hour window the
-  full catalog is covered. A new `PriceRecord` is written **only when the
-  price has actually changed** (dedup). Per-product failures are captured in
-  `product.last_fetch_error` and never crash the batch.
+[scrapeable]: app/models/product.rb
 
-We picked GitHub Actions cron over Solid Queue + a Heroku worker dyno
-because it stays inside the GitHub Student `$13/month` credit, keeps the
-schedule in version control, and is portable if we ever migrate off
-Heroku — only `APP_URL` would change.
+- **Schedule** — [`.github/workflows/refresh-prices.yml`](.github/workflows/refresh-prices.yml)
+  runs every 5 minutes during UTC hours 7–8 (≈ 2:00–3:55 AM Chicago CDT) and can
+  also be triggered manually from the *Actions* tab.
+- **Trigger** — the workflow `POST`s to `/admin/refresh_prices` with
+  `X-Admin-Token` and `X-Trigger-Source` (`schedule` or `manual`).
+- **Worker** — `AdminController#refresh_prices` returns **202 Accepted** immediately,
+  creates a [`PriceRefreshRun`](app/models/price_refresh_run.rb) row, and enqueues
+  `RefreshPricesJob`, which calls `PriceFetcher.refresh_batch` with a limit from
+  [`RefreshSchedule`](app/services/refresh_schedule.rb) based on **scrapeable**
+  product count (auto-scales; default window covers the catalog in ~24 batches).
+- **Observability** — the workflow polls `GET /admin/refresh_runs/:id` (same token)
+  for up to ~3 minutes, then writes a markdown report to the GitHub Actions
+  **Summary** tab: attempted / succeeded / failed / duration / stale remaining /
+  per-product failure messages. A green workflow step means the batch **finished**
+  (not that every scrape succeeded). Poll timeout can occur on large batches even
+  when the job completes on Heroku — check Summary or `PriceRefreshRun` in the DB.
+- **Dedup** — a new `PriceRecord` is written **only when the price has actually
+  changed**. Per-product failures go to `product.last_fetch_error` and never
+  crash the batch.
 
-For setup steps, debugging, the full list of supported / unsupported
-retailers, and the legal/ethical scraping notes, see:
+We picked GitHub Actions cron over Solid Queue + a Heroku worker dyno because it
+stays inside the GitHub Student credit, keeps the schedule in version control, and
+is portable if we migrate off Heroku — only `APP_URL` would change.
 
-- [`docs/scrapers.md`](docs/scrapers.md) — adapter contract, site support
-  matrix, full request flow, troubleshooting.
-- [`wiki.md` § Scheduled tasks](wiki.md) — one-time secret setup and
-  manual-trigger verification.
+For setup, tuning ENV vars, the site-support matrix, seed/load-test notes, and
+troubleshooting, see:
+
+- [`docs/scrapers.md`](docs/scrapers.md) — architecture, batch flow, `Product.scrapeable`.
+- [`docs/database.md`](docs/database.md) — `price_refresh_runs` table.
+- [`wiki.md` § Scheduled tasks](wiki.md) — one-time secret setup and manual verification.
 
 ## Target price + price-drop alerts
 

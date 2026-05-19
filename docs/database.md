@@ -73,6 +73,25 @@ no automatic refresh, no "Fetch latest price" button. See
 | `products.last_fetch_error` | `NULL` | `PriceFetcher.call` when a `PriceScrapers::Error` is rescued |
 | `price_records.source` | `"manual"` | `"manual"` for human-entered rows; `"scraped"` for rows created by `PriceFetcher` |
 
+### `price_refresh_runs` (batch observability)
+
+Added for nightly/manual refresh reporting. One row per enqueued batch.
+
+| Column | Purpose |
+|---|---|
+| `triggered_by` | `schedule`, `manual`, or `unknown` (from `X-Trigger-Source`) |
+| `status` | `pending` → `running` → `completed` / `skipped_overlap` / `failed` |
+| `total_products` | Scrapeable catalog size at run time |
+| `catalog_with_url` | All products with any `source_url` (includes non-PDP rows) |
+| `attempted`, `succeeded`, `failed` | Batch counters |
+| `stale_remaining` | Scrapeable products still due after this batch |
+| `duration_seconds` | Wall time for the batch |
+| `failure_details` | JSON array of `{ product_id, name, error }` |
+| `enqueued_at`, `started_at`, `finished_at` | Timestamps |
+
+Poll API (admin token): `GET /admin/refresh_runs/:id`. The GitHub Actions workflow
+writes the same data to the run **Summary** tab. See [scrapers.md § 4.1c](scrapers.md).
+
 ### Cardinality summary
 
 | From → To | Cardinality | Meaning |

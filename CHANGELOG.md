@@ -5,6 +5,36 @@ All notable changes to **PriceTracker (Smart Shopping List)** are documented in 
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Refresh batch observability.** Each cron/manual refresh creates a
+  `price_refresh_runs` row; GitHub Actions polls `GET /admin/refresh_runs/:id`
+  and writes attempted/succeeded/failed counts, duration, and failure details
+  to the run **Summary** tab.
+- **Real PDP seed catalog.** [`db/seeds/real_product_catalog.rb`](db/seeds/real_product_catalog.rb)
+  (49 retailer product URLs) replaces `example.com` placeholders and `/search?`
+  links in `db/seeds.rb`. Production-safe
+  `paginationtest:reseed_real_urls` rake task updates only the Pagy stress-test
+  account on Heroku.
+
+### Changed
+- **Async batched nightly refresh (P0).** `/admin/refresh_prices` returns 202 and
+  enqueues `RefreshPricesJob`; `RefreshSchedule` auto-sizes batches across a
+  2-hour UTC window (24 ticks). Heroku 30s HTTP limit no longer applies to the
+  scrape work itself.
+- **`Product.scrapeable` scope.** Cron batches skip non-PDP URLs (`example.com`,
+  retailer search pages). `RefreshSchedule.batch_size` counts scrapeable products
+  only.
+- **GitHub Actions refresh workflow** waits for batch completion (poll + Summary)
+  instead of treating HTTP 202 alone as success.
+
+### Fixed
+- Daily refresh 503 at stress-test scale (1265+ products) by moving work off the
+  synchronous request path.
+- CI tests for advisory-lock overlap, `REFRESH_BATCH_MAX`, and scrapeable-aware
+  `refresh_batch` specs.
+
 ## [v1.1.0] — 2026-05-17 — Milestone 2 (UI + auto-scrape + notifications)
 
 Second milestone release. Three big themes drive this release: a full UI

@@ -15,7 +15,7 @@ Object-oriented design and user flow sketches:
 
 [smart-shoppinglist-6ae31171e85c.herokuapp.com](https://smart-shoppinglist-6ae31171e85c.herokuapp.com/)
 
-Demo account: `demo@example.com` / `password`
+Demo account: `demo@example.com` / `TrackSave!123` (see [Seed accounts](../README.md#seed-accounts))
 
 ## Tech stack
 
@@ -105,7 +105,20 @@ bin/rails db:create db:migrate db:seed
 bin/rails server
 ```
 
-Then log in as `demo@example.com` / `password`.
+Then log in as `demo@example.com` / `TrackSave!123`.
+
+### Seed & load-test accounts
+
+After `bin/rails db:seed`, see [README § Seed accounts](../README.md#seed-accounts).
+All seeded products use **real retailer PDP URLs** from
+[`db/seeds/real_product_catalog.rb`](../db/seeds/real_product_catalog.rb).
+
+**Never** run `db:seed:replant` on Heroku production. To refresh only
+`paginationtest@example.com`:
+
+```bash
+heroku run bin/rails paginationtest:reseed_real_urls -a smart-shoppinglist
+```
 
 ### Running tests
 ```bash
@@ -139,11 +152,12 @@ if we ever migrate off Heroku — only `APP_URL` would need to change.
    Accepted** immediately (Heroku web requests must finish within 30 seconds).
 4. The workflow polls `GET /admin/refresh_runs/:id` until the batch
    finishes, then writes a markdown report to the run **Summary** tab.
-5. The job calls `PriceFetcher.refresh_batch` with a limit computed by
-   `RefreshSchedule` from the current product count — batch size scales
-   automatically when load grows. Over 24 ticks in the 2-hour window the
-   full catalog is covered. A new `PriceRecord` is written only when the
-   price has actually changed.
+5. The job calls `PriceFetcher.refresh_batch` on **`Product.scrapeable`** rows
+   only (real PDP URLs — skips `example.com` placeholders and `/search?` links).
+   Limit comes from `RefreshSchedule` (auto-scales with scrapeable count). Over
+   24 ticks in the 2-hour window the scrapeable catalog is covered. A new
+   `PriceRecord` is written only when the price has actually changed.
+6. Each run is persisted in `price_refresh_runs` for polling and debugging.
 
 **Tuning (Heroku config vars):** `REFRESH_WINDOW_HOURS=2`,
 `REFRESH_INTERVAL_MINUTES=5`, `REFRESH_STALE_HOURS=23`, `REFRESH_BATCH_MAX=500`.
@@ -165,10 +179,14 @@ heroku config:set ADMIN_REFRESH_TOKEN=<the-secret> -a smart-shoppinglist
 
 **Verifying it works:**
 
-- **Manual trigger:** GitHub → Actions tab → "Daily price refresh" →
-  "Run workflow". Open the run → **Summary** for succeeded/failed counts,
-  duration, trigger source, and per-product failure messages.
-- **Watch the app logs:** `heroku logs --tail -a smart-shoppinglist` (optional).
+- **Manual trigger:** GitHub → Actions → "Daily price refresh" → "Run workflow".
+  Open the run → **Summary** for attempted/succeeded/failed, duration, trigger
+  source, and failure list. A red "poll timeout" step can appear while the batch
+  still completes on Heroku (~3 min for ~53 serial scrapes) — check Summary or
+  `heroku run bin/rails runner "pp PriceRefreshRun.last.as_api_json"`.
+- **Production pagination account only:**
+  `heroku run bin/rails paginationtest:reseed_real_urls -a smart-shoppinglist`
+- **App logs (optional):** `heroku logs --tail -a smart-shoppinglist`
 - **CLI full refresh (emergency):**
   ```bash
   bin/rails runner "PriceFetcher.refresh_all"
