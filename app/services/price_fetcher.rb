@@ -63,15 +63,11 @@ class PriceFetcher
 
     succeeded = failed = 0
     failures = []
-    scope.find_each do |product|
+    scope.includes(:user).find_each do |product|
       call(product)
       if product.last_fetch_error.present?
         failed += 1
-        failures << {
-          "product_id" => product.id,
-          "name" => product.name,
-          "error" => product.last_fetch_error
-        }
+        failures << failure_detail_for(product)
       else
         succeeded += 1
       end
@@ -147,4 +143,23 @@ class PriceFetcher
     )
     { succeeded: succeeded, failed: failed, duration: duration }
   end
+
+  def self.failure_detail_for(product)
+    {
+      "product_id" => product.id,
+      "name" => product.name.to_s.truncate(80),
+      "source_url" => product.source_url,
+      "host" => host_from_source_url(product.source_url),
+      "user_email" => product.user.email_address,
+      "error" => product.last_fetch_error
+    }
+  end
+
+  def self.host_from_source_url(url)
+    URI.parse(url.to_s).host.presence || "unknown"
+  rescue URI::InvalidURIError
+    "unknown"
+  end
+
+  private_class_method :failure_detail_for, :host_from_source_url
 end

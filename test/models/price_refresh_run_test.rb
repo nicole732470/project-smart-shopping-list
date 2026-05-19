@@ -18,6 +18,7 @@ class PriceRefreshRunTest < ActiveSupport::TestCase
       failed: 1,
       stale_remaining: 80,
       failures: [ { "product_id" => 1, "name" => "X", "error" => "timeout" } ],
+      failure_summary: { "total_failures" => 1, "by_category" => [] },
       duration: 12.3
     )
 
@@ -25,6 +26,7 @@ class PriceRefreshRunTest < ActiveSupport::TestCase
     assert_equal "completed", run.status
     assert_equal 4, run.succeeded
     assert_equal 1, run.failed
+    assert_equal({ "total_failures" => 1, "by_category" => [] }, run.failure_summary)
     assert_equal 80, run.stale_remaining
     assert_not_nil run.finished_at
   end

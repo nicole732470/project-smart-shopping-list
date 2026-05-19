@@ -5,7 +5,6 @@ class RefreshPricesJob < ApplicationJob
   # run outlasts the cron interval. No Redis required.
   ADVISORY_LOCK_KEY = 0x5052_4943_45 # "PRICE"
 
-  FAILURE_DETAIL_LIMIT = 100
   FULL_CYCLE_MAX_BATCHES = 500
 
   def perform(refresh_run_id, full_cycle: false)
@@ -49,7 +48,7 @@ class RefreshPricesJob < ApplicationJob
     min_age = RefreshSchedule.stale_after
 
     attempted = succeeded = failed = 0
-    failures = []
+    failure_report = RefreshFailureReport.new
     batches_run = 0
     last_batch_size = limit
     total = Product.refreshable.count
@@ -63,7 +62,7 @@ class RefreshPricesJob < ApplicationJob
       attempted += summary[:attempted]
       succeeded += summary[:succeeded]
       failed += summary[:failed]
-      failures.concat(summary[:failures])
+      failure_report.record_all(summary[:failures])
       stale_remaining = summary[:stale_remaining]
 
       break unless full_cycle
@@ -71,6 +70,8 @@ class RefreshPricesJob < ApplicationJob
       break if stale_remaining.zero?
       break if batches_run >= FULL_CYCLE_MAX_BATCHES
     end
+
+    aggregated = failure_report.to_h
 
     {
       total: total,
@@ -81,10 +82,15 @@ class RefreshPricesJob < ApplicationJob
       succeeded: succeeded,
       failed: failed,
       stale_remaining: stale_remaining,
-      failures: failures.first(FAILURE_DETAIL_LIMIT),
+      failures: aggregated["samples"],
+      failure_summary: aggregated.except("samples"),
       duration: (Time.current - started_at).round(1)
     }.tap do |aggregate|
-      Rails.logger.info("[RefreshPricesJob] full_cycle=#{full_cycle} #{aggregate.inspect}")
+      Rails.logger.info(
+        "[RefreshPricesJob] full_cycle=#{full_cycle} " \
+        "attempted=#{aggregate[:attempted]} failed=#{aggregate[:failed]} " \
+        "failure_categories=#{aggregate[:failure_summary]['by_category']&.size || 0}"
+      )
     end
   end
 

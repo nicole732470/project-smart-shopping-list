@@ -130,6 +130,16 @@ jobs:
 
           data = json.loads(Path("/tmp/run_status.json").read_text())
           failures = data.get("failure_details") or []
+          summary = data.get("failure_summary") or {}
+
+          def table(title, rows, headers):
+              if not rows:
+                  return []
+              out = [f"### {title}", "", f"| {headers[0]} | {headers[1]} |", "|---|---|"]
+              for row in rows:
+                  out.append(f"| {row.get('label', '?')} | {row.get('count', 0)} |")
+              out.append("")
+              return out
 
           lines = [
               "## Price refresh report",
@@ -157,21 +167,60 @@ jobs:
           if data.get("error_message"):
               lines += ["### Job error", "", "```", data["error_message"], "```", ""]
 
+          if summary:
+              total_logged = summary.get("total_failures")
+              if total_logged is not None:
+                  lines += [f"**Failure breakdown** (aggregated across all {data.get('failed', 0)} failed attempts)", ""]
+              lines += table("By category", summary.get("by_category") or [], ["Category", "Count"])
+              lines += table("By host", summary.get("by_host") or [], ["Host", "Count"])
+              lines += table("By exact error", summary.get("by_error") or [], ["Error", "Count"])
+
           if failures:
-              lines += ["### Failed products", ""]
-              for item in failures[:20]:
-                  name = item.get("name", "?")
-                  pid = item.get("product_id", "?")
-                  err = item.get("error", "?")
-                  lines.append(f"- **#{pid}** {name}: {err}")
-              if len(failures) > 20:
-                  lines.append(f"- … and {len(failures) - 20} more")
+              lines += ["### Sample failures (click URL to test in browser)", ""]
+              has_url = any(item.get("source_url") for item in failures)
+              if has_url:
+                  lines += ["| ID | Product | Account | Error | URL |", "|---:|---|---|---|---|"]
+                  for item in failures[:40]:
+                      pid = item.get("product_id", "?")
+                      name = (item.get("name") or "?").replace("|", "/")
+                      account = (item.get("user_email") or "?").replace("|", "/")
+                      err = (item.get("category") or item.get("error") or "?").replace("|", "/")
+                      url = item.get("source_url") or "—"
+                      if url != "—":
+                          url_cell = f"[open]({url}) `{url}`"
+                      else:
+                          url_cell = "—"
+                      lines.append(f"| {pid} | {name} | {account} | {err} | {url_cell} |")
+              else:
+                  lines += [
+                      "_This run was recorded before URL fields were added. Deploy the latest code and re-run, or query_",
+                      "`GET /admin/refresh_runs/<id>` _after deploy — samples include `source_url`._",
+                      "",
+                  ]
+                  for item in failures[:30]:
+                      pid = item.get("product_id", "?")
+                      name = item.get("name", "?")
+                      err = item.get("error", "?")
+                      lines.append(f"- **#{pid}** {name}: {err}")
+              if len(failures) > 40:
+                  lines.append("")
+                  lines.append(f"_… {len(failures) - 40} more samples in artifact `refresh-run-{data.get('id')}.json`_")
               lines.append("")
           elif data.get("status") == "skipped_overlap":
               lines += ["### Note", "", "Previous batch was still running; this tick was skipped.", ""]
 
           print("\n".join(lines))
           PY
+
+          cp /tmp/run_status.json "/tmp/refresh-run-${RUN_ID}.json"
+
+      - name: Upload full run report
+        if: always() && steps.trigger.outputs.run_id != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: refresh-run-${{ steps.trigger.outputs.run_id }}
+          path: /tmp/refresh-run-${{ steps.trigger.outputs.run_id }}.json
+          if-no-files-found: ignore
 
       - name: Fail on job error
         if: steps.wait.outputs.final_status == 'failed'

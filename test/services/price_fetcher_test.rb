@@ -255,6 +255,8 @@ class PriceFetcherTest < ActiveSupport::TestCase
       assert_equal 1, summary[:failures].size
       assert_equal @product.id, summary[:failures].first["product_id"]
       assert_match(/network blip/, summary[:failures].first["error"])
+      assert_equal @product.source_url, summary[:failures].first["source_url"]
+      assert_equal "www.amazon.com", summary[:failures].first["host"]
     end
   end
 end

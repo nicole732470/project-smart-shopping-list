@@ -86,7 +86,8 @@ Added for nightly/manual refresh reporting. One row per enqueued batch.
 | `attempted`, `succeeded`, `failed` | Batch counters |
 | `stale_remaining` | Scrapeable products still due after this batch |
 | `duration_seconds` | Wall time for the batch |
-| `failure_details` | JSON array of `{ product_id, name, error }` |
+| `failure_details` | JSON array of sample failures `{ product_id, name, source_url, host, user_email, error, category }` |
+| `failure_summary` | JSON `{ total_failures, by_category[], by_host[], by_error[] }` — full counts for the run |
 | `enqueued_at`, `started_at`, `finished_at` | Timestamps |
 
 Poll API (admin token): `GET /admin/refresh_runs/:id`. The GitHub Actions workflow

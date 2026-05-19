@@ -24,6 +24,7 @@ class PriceRefreshRun < ApplicationRecord
       stale_remaining: summary[:stale_remaining],
       duration_seconds: summary[:duration],
       failure_details: summary[:failures] || [],
+      failure_summary: summary[:failure_summary] || {},
       finished_at: Time.current
     )
   end
@@ -43,6 +44,7 @@ class PriceRefreshRun < ApplicationRecord
       stale_remaining: stale_remaining,
       duration_seconds: duration_seconds&.to_f,
       failure_details: failure_details,
+      failure_summary: failure_summary,
       error_message: error_message,
       enqueued_at: enqueued_at&.iso8601,
       started_at: started_at&.iso8601,

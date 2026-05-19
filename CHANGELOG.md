@@ -39,6 +39,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   manual full-cycle, 5 min for cron) and writes Summary with batches run.
 
 ### Fixed
+- **Refresh failure reporting.** Runs now store aggregated `failure_summary`
+  (counts by category, host, exact error) plus richer samples with `source_url`,
+  `host`, and `user_email`. GitHub Summary shows breakdown tables and uploads
+  the full JSON report as a workflow artifact.
 - Daily refresh 503 at stress-test scale (1265+ products) by moving work off the
   synchronous request path.
 - CI tests for advisory-lock overlap, `REFRESH_BATCH_MAX`, and scrapeable-aware

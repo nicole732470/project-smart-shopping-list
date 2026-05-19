@@ -69,6 +69,44 @@ class RefreshPricesJobTest < ActiveJob::TestCase
     assert_equal 0, @run.stale_remaining
   end
 
+  test "full_cycle aggregates failure summary across batches" do
+    calls = 0
+    stub_method(PriceFetcher, :refresh_batch, ->(**kwargs) {
+      calls += 1
+      failures = if calls == 1
+        [
+          {
+            "product_id" => 1,
+            "name" => "A",
+            "source_url" => "https://www.amazon.com/dp/B1",
+            "host" => "www.amazon.com",
+            "user_email" => "paginationtest@example.com",
+            "error" => "HTTP 403 from www.amazon.com"
+          }
+        ]
+      else
+        []
+      end
+      {
+        total: 5,
+        catalog_with_url: 10,
+        batch_size: kwargs[:limit],
+        attempted: calls == 1 ? 1 : 0,
+        succeeded: 0,
+        failed: calls == 1 ? 1 : 0,
+        stale_remaining: calls == 1 ? 0 : 0,
+        failures: failures,
+        duration: 0.1
+      }
+    }) do
+      RefreshPricesJob.perform_now(@run.id, full_cycle: true)
+    end
+
+    @run.reload
+    assert_equal 1, @run.failure_summary["total_failures"]
+    assert_equal "HTTP 403 — blocked (bot/WAF)", @run.failure_summary["by_category"].first["label"]
+  end
+
   test "full_cycle uses refreshable count as batch limit" do
     called_with = nil
     stub_method(PriceFetcher, :refresh_batch, ->(**kwargs) {
