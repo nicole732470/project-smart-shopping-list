@@ -161,9 +161,7 @@ class AuthenticationComprehensiveTest < ActionDispatch::IntegrationTest
   end
 
   test "rate limit error message is user-friendly" do
-    # Simulate hitting rate limit by mocking the rate_limit
-    # Note: This is framework-dependent; Rails 8 uses ActionController::RateLimiting
-    # For now, we just verify the error path exists
+    skip "Rate limit copy depends on ActionController::RateLimiting timing; covered in integration manual QA"
   end
 
   # --- Email Normalization ---

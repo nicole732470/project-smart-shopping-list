@@ -37,6 +37,8 @@ class RefreshFailureReportTest < ActiveSupport::TestCase
     assert_equal 2, result["by_category"].first["count"]
     assert_equal "www.amazon.com", result["by_host"].first["label"]
     assert_equal 2, result["samples"].size
-    assert_equal "https://www.amazon.com/dp/B1", result["samples"].first["source_url"]
+    sample_urls = result["samples"].map { |sample| sample["source_url"] }
+    assert_includes sample_urls, "https://www.amazon.com/dp/B1"
+    assert_includes sample_urls, "https://shop.lululemon.com/p/x"
   end
 end

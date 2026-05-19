@@ -40,11 +40,7 @@ class RefreshPricesJob < ApplicationJob
 
   def run_cycle(full_cycle:)
     started_at = Time.current
-    limit = if full_cycle
-              Product.refreshable.count.clamp(1, RefreshSchedule.max_batch)
-            else
-              RefreshSchedule.batch_size
-            end
+    limit = full_cycle ? Product.refreshable.count.clamp(1, RefreshSchedule.max_batch) : RefreshSchedule.batch_size
     min_age = RefreshSchedule.stale_after
 
     attempted = succeeded = failed = 0
