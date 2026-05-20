@@ -1,4 +1,9 @@
-<%= form_with model: [@product, price_record], local: true, class: "pt-form", data: { controller: "price-record-form" } do |f| %>
+<%# On `new`, the form must POST to the nested products/:id/price_records
+    route. On `edit`, the route is the flat /price_records/:id resource — the
+    nested update route doesn't exist. Resolve the model/url accordingly so
+    Rails can build the right path helper either way. %>
+<% form_target = price_record.new_record? ? [ product, price_record ] : price_record %>
+<%= form_with model: form_target, local: true, class: "pt-form", data: { controller: "price-record-form" } do |f| %>
   <% if price_record.errors.any? %>
     <div class="pt-flash" role="alert" style="border-left: 3px solid var(--red);">
       <span class="pt-flash-icon" style="background: var(--red);">!</span>
