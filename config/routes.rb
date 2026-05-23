@@ -13,6 +13,7 @@ Rails.application.routes.draw do
   end
   resources :price_records, only: [ :index, :show, :edit, :update, :destroy ]
   get "budgetplanner", to: "budget_planner#index", as: :budget_planner
+  get "ask",           to: "assistant#index",      as: :assistant
 
   get "about",   to: "pages#about",   as: :about
   get "privacy", to: "pages#privacy", as: :privacy
