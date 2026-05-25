@@ -611,7 +611,13 @@ body {
   display: inline-block; font-size: 11px;
   padding: 2px 9px; border-radius: 980px;
   font-weight: 500;
+  cursor: help;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
+.pt-source:hover { border-color: var(--line); }
 .pt-source-auto { background: var(--accent-50); color: var(--accent-700); }
 .pt-source-manual { background: var(--bg-2); color: var(--ink-2); }
 
