@@ -98,9 +98,32 @@ class UserTest < ActiveSupport::TestCase
     end
   end
 
-  test "from_omniauth merges duplicate accounts that share the same email" do
+  test "merge_accounts! combines products and prefers the password account when tied" do
+    password_user = User.create!(valid_attributes(email_address: "merge-password@example.com"))
+    password_user.products.create!(name: "Password product", category: "Books")
+
+    oauth_user = User.create!(
+      email_address: "merge-oauth@example.com",
+      password: "Oauth#Pass9!",
+      password_confirmation: "Oauth#Pass9!",
+      provider: "google_oauth2",
+      uid: "google-merge"
+    )
+    oauth_user.products.create!(name: "OAuth product", category: "Books")
+
+    assert_difference("User.count", -1) do
+      merged = User.merge_accounts!([ password_user, oauth_user ])
+
+      assert_equal password_user.id, merged.id
+      assert_equal 2, merged.products.count
+      assert_includes merged.products.pluck(:name), "OAuth product"
+      assert_includes merged.products.pluck(:name), "Password product"
+      assert_nil User.find_by(id: oauth_user.id)
+    end
+  end
+
+  test "from_omniauth merges related accounts that share an email" do
     password_user = User.create!(valid_attributes(email_address: "dup@example.com"))
-    password_user.update_column(:email_address, "Dup@Example.com")
     password_user.products.create!(name: "Password product", category: "Books")
 
     oauth_user = User.create!(
@@ -110,8 +133,13 @@ class UserTest < ActiveSupport::TestCase
       provider: "google_oauth2",
       uid: "google-dup"
     )
-    oauth_user.update_column(:email_address, "dup@EXAMPLE.com")
     oauth_user.products.create!(name: "OAuth product", category: "Books")
+
+    related = User.accounts_for_email("dup@example.com").to_a
+    assert_equal 1, related.size, "precondition: only password account matches before aliasing"
+
+    oauth_user.update_column(:email_address, "Dup@Example.com")
+    assert_equal 2, User.accounts_for_email("dup@example.com").size
 
     auth = OmniAuth::AuthHash.new(
       provider: "google_oauth2",
@@ -126,8 +154,6 @@ class UserTest < ActiveSupport::TestCase
       assert_equal "google_oauth2", merged.provider
       assert_equal "google-dup", merged.uid
       assert_equal 2, merged.products.count
-      assert_includes merged.products.pluck(:name), "OAuth product"
-      assert_includes merged.products.pluck(:name), "Password product"
       assert_nil User.find_by(id: oauth_user.id)
     end
   end

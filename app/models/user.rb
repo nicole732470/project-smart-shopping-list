@@ -75,7 +75,7 @@ class User < ApplicationRecord
              related_users.first
            else
              merge_accounts!(related_users)
-           end
+    end
 
     user.provider = provider
     user.uid = uid
