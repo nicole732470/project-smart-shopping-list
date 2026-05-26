@@ -90,6 +90,46 @@ class AuthenticationComprehensiveTest < ActionDispatch::IntegrationTest
     assert_redirected_to products_path
   end
 
+  test "login falls back to home when return_to points at another users product" do
+    other_product = products(:two)
+
+    get product_path(other_product)
+    assert_redirected_to new_session_path
+
+    post session_path, params: {
+      email_address: @user.email_address,
+      password: "password"
+    }
+
+    assert_redirected_to root_path
+  end
+
+  test "login still honors return_to for the users own product" do
+    own_product = products(:one)
+
+    get product_path(own_product)
+    assert_redirected_to new_session_path
+
+    post session_path, params: {
+      email_address: @user.email_address,
+      password: "password"
+    }
+
+    assert_redirected_to product_path(own_product)
+  end
+
+  test "login falls back to home when return_to is an auth path" do
+    get new_session_path
+    session[:return_to_after_authenticating] = "/auth/google_oauth2/callback"
+
+    post session_path, params: {
+      email_address: @user.email_address,
+      password: "password"
+    }
+
+    assert_redirected_to root_path
+  end
+
   test "return_to_after_authenticating session key is cleared after redirect" do
     post session_path, params: {
       email_address: @user.email_address,

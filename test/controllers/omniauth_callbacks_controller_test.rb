@@ -42,6 +42,16 @@ class OmniauthCallbacksControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
+  test "google callback falls back to home when return_to points at another users product" do
+    get product_path(products(:two))
+    assert_redirected_to new_session_path
+
+    get "/auth/google_oauth2/callback", env: { "omniauth.auth" => @auth_hash }
+
+    assert_redirected_to root_path
+    assert_equal "controller-oauth@example.com", User.find_by(email_address: "controller-oauth@example.com").email_address
+  end
+
   test "oauth failure redirects to sign in" do
     get "/auth/failure"
 
