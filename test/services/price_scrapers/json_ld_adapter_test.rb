@@ -32,10 +32,26 @@ class PriceScrapers::JsonLdAdapterTest < ActiveSupport::TestCase
     assert_equal "https://example.com/widget.jpg", result.image_url
   end
 
-  test "raises PermanentError when no Product JSON-LD is found" do
+  test "raises PermanentError when no product price can be found" do
     assert_raises(PriceScrapers::PermanentError) do
       parse("json_ld_missing.html")
     end
+  end
+
+  test "extracts price from Open Graph product meta tags when JSON-LD is absent" do
+    result = parse("meta_og_product.html", url: "https://shop.example.com/products/mug")
+    assert_equal BigDecimal("24.99"), result.price
+    assert_equal "USD", result.currency
+    assert_equal "Handmade Ceramic Mug", result.title
+    assert_equal "https://cdn.example.com/mug.jpg", result.image_url
+  end
+
+  test "extracts price from HTML microdata when JSON-LD and meta tags are absent" do
+    result = parse("microdata_product.html", url: "https://shop.example.com/products/widget")
+    assert_equal BigDecimal("19.99"), result.price
+    assert_equal "USD", result.currency
+    assert_equal "Widget Pro", result.title
+    assert_equal "https://example.com/widget.jpg", result.image_url
   end
 
   test "handles ProductGroup with offers nested under hasVariant (Lululemon-style)" do

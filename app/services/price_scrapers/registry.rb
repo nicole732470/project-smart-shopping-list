@@ -1,7 +1,7 @@
 module PriceScrapers
   # Maps a URL host to the right adapter. The default fallback is JsonLdAdapter,
-  # which works for most schema.org-compliant retailers (Best Buy, Target,
-  # Newegg, Apple, B&H, Walmart, Lululemon, Nike, etc.).
+  # which tries JSON-LD, Open Graph meta tags, and HTML microdata — no per-site
+  # registration needed for most retailers.
   #
   # To add a site-specific adapter, add a regex -> class entry to ADAPTERS.
   # See docs/scrapers.md for the full guide.

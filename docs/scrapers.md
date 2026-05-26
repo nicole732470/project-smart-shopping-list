@@ -17,7 +17,7 @@ flowchart LR
     Fetcher --> Facade
     Facade --> Reg["Registry.for(url)"]
     Reg -->|"amazon.*"| Amazon[AmazonAdapter]
-    Reg -->|"any other host"| JsonLd["JsonLdAdapter<br/>(schema.org default)"]
+    Reg -->|"any other host"| JsonLd["JsonLdAdapter<br/>(JSON-LD → OG meta → microdata)"]
     Amazon --> Result["Result(price, title,<br/>image_url, store_name)"]
     JsonLd --> Result
     Result --> Persist["Create scraped<br/>PriceRecord (deduped)"]
@@ -89,12 +89,14 @@ Both are subclasses of `PriceScrapers::Error`, which the controllers and
 
 ## 3. Adding a new site
 
-1. **Try the URL with the existing JSON-LD adapter first.** Most retailers
-   already work because they emit schema.org Product data for SEO. Just add
-   a product with the URL and click "Fetch latest price." If you get a real
-   price, you're done — no code needed.
+1. **Try the URL with the default adapter first.** For any non-Amazon host,
+   [`JsonLdAdapter`](../app/services/price_scrapers/json_ld_adapter.rb) tries
+   three layers in order — schema.org JSON-LD, Open Graph / `product:price:*`
+   meta tags, then HTML `itemprop` microdata. Most large retailers and many
+   Shopify stores work without custom code. Add the URL and click "Fetch latest
+   price." If you get a real price, you're done.
 
-2. **If JSON-LD doesn't work**, write a site-specific adapter:
+2. **If all three layers fail**, write a site-specific adapter:
 
    ```ruby
    # app/services/price_scrapers/best_buy_adapter.rb
@@ -428,7 +430,7 @@ locate the price (e.g. Walmart sometimes shows a price *range* without a
 flat `offers.price`).
 **Fix**: Add a manual price record, or write a site adapter.
 
-**Symptom**: `No schema.org Product JSON-LD found` from a `target.com/p/...`
+**Symptom**: `No product price found on page` from a `target.com/p/...`
 URL even though the page loads in a browser.
 **Cause**: As of late April 2026 Target globally disabled server-side
 rendering of price (`isProductDetailServerSideRenderPriceEnabled: false`
