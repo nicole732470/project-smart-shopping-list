@@ -125,18 +125,37 @@ If either is true and no alert has fired in the last 24 hours, the system:
 - renders + queues a `PriceAlertMailer.price_drop` notification, and
 - stamps `product.last_alerted_at = Time.current`.
 
-The alert then surfaces in the UI **without** requiring an SMTP provider:
+The alert then surfaces in the UI immediately, and sends email when SMTP is
+configured:
 
 - a green **"PRICE ALERT TRIGGERED"** banner on the product show page for
   the next 7 days (with the trigger price and store);
 - a **"🎉 Alert fired N days ago"** chip on the product card in the index;
-- a **"🎯 Notify at $X"** chip + side-meta row whenever a target is set.
+- a **"🎯 Notify at $X"** chip + side-meta row whenever a target is set;
+- an HTML + text **email** via `PriceAlertMailer` when outbound SMTP is set.
 
-Outbound email delivery is intentionally left unwired for this milestone —
-templates render correctly via `bin/rails runner` and the mailer previews
-under `/rails/mailers/price_alert_mailer`, but no SMTP credentials are
-configured. See [`wiki.md` § Price-drop alerts](wiki.md) for the full
-pipeline diagram and implementation notes.
+### Email delivery (SendGrid / SMTP)
+
+Set these Heroku config vars (or local `.env`) to send real alert emails:
+
+```sh
+SMTP_ADDRESS=smtp.sendgrid.net
+SMTP_USERNAME=apikey
+SMTP_PASSWORD=<your SendGrid API key>
+MAILER_FROM="PriceTracker <verified-sender@yourdomain.com>"
+APP_URL=https://smart-shoppinglist-6ae31171e85c.herokuapp.com
+```
+
+SendGrid requires a [verified sender](https://docs.sendgrid.com/for-developers/sending-email/sender-identity). Without SMTP vars, alerts still appear in-app; emails are queued but not delivered.
+
+Smoke test after configuring:
+
+```sh
+heroku run bin/rails mailer:smoke_test -a smart-shoppinglist
+```
+
+Mailer previews remain at `/rails/mailers/price_alert_mailer`. See
+[`wiki.md` § Price-drop alerts](wiki.md) for the full pipeline.
 
 ## AI deal recommendations
 

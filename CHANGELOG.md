@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Price-drop email delivery (M3).** `MailerSettings` configures SendGrid/SMTP
+  from ENV; `PriceAlertMailer` sends HTML + text when target hit or history low.
+  `bin/rails mailer:smoke_test` for production verification. In-app alerts
+  unchanged when SMTP is unset.
 - **Manual full-cycle refresh.** GitHub Actions *Run workflow* sends
   `X-Refresh-Mode: full-cycle`; `RefreshPricesJob` runs batch after batch
   immediately until every refreshable product is updated (one click, not 24).

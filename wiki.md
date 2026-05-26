@@ -61,7 +61,7 @@ These tools solve overlapping problems and are useful for comparison and inspira
 
 ## Features beyond MVP (planned / ideas)
 
-- **Email delivery for price-drop alerts.** The alert pipeline (target-hit + history-low detection, 24h cooldown, mailer with HTML + text templates) is implemented today; only the outbound SMTP wiring is deferred. Hooking up a transactional mail provider would let alerts land in the user's inbox in addition to the in-app banner.
+- **Email delivery for price-drop alerts.** ✅ Wired via `MailerSettings` + SMTP (SendGrid on Heroku). Set `SMTP_ADDRESS`, `SMTP_PASSWORD`, `MAILER_FROM`, and `APP_URL`. Without SMTP, in-app banners still work.
 - **"Resolved" / purchased state.** A toggle on each product to mark "bought" or "no longer watching," which hides it from the main grid.
 - **Product images.** Either an uploaded image via Active Storage or a URL-scraped thumbnail.
 - **Automatic price scraping.** Pull current prices from supported retailers (Amazon, Target, etc.) instead of requiring manual entry.
@@ -213,11 +213,23 @@ PriceRecord.after_create_commit
 PriceAlerter.call(record)
         ├── no-op if cooldown active (last_alerted_at within 24h)
         ├── compute reasons (target_hit, history_low)
-        ├── PriceAlertMailer.price_drop(...).deliver_later  (rendered today;
-        │                                                    delivered when
-        │                                                    SMTP is wired)
+        ├── PriceAlertMailer.price_drop(...).deliver_later
+        │   (delivered when SMTP_ADDRESS + SMTP_PASSWORD are set)
         └── product.update_column(:last_alerted_at, Time.current)
 ```
+
+**Email (production):**
+
+```bash
+heroku config:set \
+  SMTP_ADDRESS=smtp.sendgrid.net \
+  SMTP_USERNAME=apikey \
+  SMTP_PASSWORD=<SendGrid API key> \
+  MAILER_FROM="PriceTracker <verified@yourdomain.com>" \
+  -a smart-shoppinglist
+```
+
+`APP_URL` must already match the deployed host so "View on PriceTracker" links work. Smoke test: `heroku run bin/rails mailer:smoke_test`.
 
 **Where the user sees it:**
 
