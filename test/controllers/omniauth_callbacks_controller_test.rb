@@ -23,6 +23,25 @@ class OmniauthCallbacksControllerTest < ActionDispatch::IntegrationTest
     assert_equal "google_oauth2", User.find_by(email_address: "controller-oauth@example.com").provider
   end
 
+  test "google callback links an existing password account with the same email" do
+    existing = User.create!(
+      email_address: "controller-oauth@example.com",
+      password: "Test#Pass9!",
+      password_confirmation: "Test#Pass9!"
+    )
+    existing.products.create!(name: "Existing product", category: "Books")
+
+    assert_no_difference("User.count") do
+      get "/auth/google_oauth2/callback", env: { "omniauth.auth" => @auth_hash }
+    end
+
+    existing.reload
+    assert_equal "google_oauth2", existing.provider
+    assert_equal "controller-google-123", existing.uid
+    assert_equal 1, existing.products.count
+    assert_redirected_to root_path
+  end
+
   test "oauth failure redirects to sign in" do
     get "/auth/failure"
 

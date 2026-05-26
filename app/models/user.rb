@@ -27,33 +27,87 @@ class User < ApplicationRecord
     provider.present? && uid.present?
   end
 
+  def self.normalize_email(email)
+    email.to_s.strip.downcase
+  end
+
+  # Case-insensitive lookup — handles legacy rows saved before email
+  # normalization, so Google sign-in can attach to an existing account.
+  def self.find_by_email_address(email)
+    normalized = normalize_email(email)
+    return nil if normalized.blank?
+
+    where("LOWER(email_address) = ?", normalized).first
+  end
+
+  def self.accounts_for_email(email)
+    normalized = normalize_email(email)
+    return none if normalized.blank?
+
+    where("LOWER(email_address) = ?", normalized).order(:created_at)
+  end
+
   # Find-or-create a User from an OmniAuth::AuthHash. Looks up by
   # (provider, uid) first so repeat sign-ins land on the same row, then by
-  # email so users who originally signed up locally can attach a Google
-  # login later. New OAuth users get a random password that satisfies
-  # has_secure_password's create-time presence validation; they sign in
-  # via the provider, not by typing it. Raises User::OauthError on a
-  # missing email or validation failure so OmniauthCallbacksController can
-  # surface a friendly message.
+  # email (case-insensitive) so users who originally signed up locally are
+  # linked instead of getting a second account. If duplicate rows already
+  # exist for the same email, their products are merged into one user.
+  # New OAuth users get a random password that satisfies has_secure_password's
+  # create-time presence validation; they sign in via the provider, not by
+  # typing it. Raises User::OauthError on a missing email or validation
+  # failure so OmniauthCallbacksController can surface a friendly message.
   def self.from_omniauth(auth)
     provider = auth.provider.to_s
     uid = auth.uid.to_s
     info = auth.info
-    email = info.email.to_s.downcase
+    email = normalize_email(info.email)
 
     raise OauthError, "Google did not return an email address." if email.blank?
 
-    user = find_by(provider: provider, uid: uid) || find_by(email_address: email) || new(email_address: email)
+    oauth_user = find_by(provider: provider, uid: uid)
+    email_matches = accounts_for_email(email).to_a
+    related_users = (email_matches + [ oauth_user ].compact).uniq(&:id)
+
+    user = if related_users.empty?
+             new(email_address: email)
+           elsif related_users.size == 1
+             related_users.first
+           else
+             merge_accounts!(related_users)
+           end
+
     user.provider = provider
     user.uid = uid
-    user.name = info.name if info.respond_to?(:name)
-    user.avatar_url = info.image if info.respond_to?(:image)
+    user.name = info.name if info.respond_to?(:name) && info.name.present?
+    user.avatar_url = info.image if info.respond_to?(:image) && info.image.present?
+    user.email_address = email
     user.password = generated_oauth_password(email) if user.password_digest.blank?
     user.password_confirmation = user.password if user.password_digest.blank?
     user.save!
     user
   rescue ActiveRecord::RecordInvalid => e
     raise OauthError, e.record.errors.full_messages.to_sentence
+  end
+
+  # Combine duplicate accounts that share the same email. Keeps the account
+  # with the most products, preferring the original password registration
+  # when tied, and moves products from the others before deleting them.
+  def self.merge_accounts!(users)
+    keep = users.max_by { |user| [ user.products.count, user.oauth_user? ? 0 : 1, -user.created_at.to_i ] }
+
+    transaction do
+      users.each do |duplicate|
+        next if duplicate.id == keep.id
+
+        duplicate.products.update_all(user_id: keep.id)
+        duplicate.sessions.delete_all
+        duplicate.destroy!
+      end
+
+      keep.update!(email_address: normalize_email(keep.email_address))
+    end
+
+    keep
   end
 
   private

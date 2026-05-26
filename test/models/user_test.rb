@@ -77,6 +77,58 @@ class UserTest < ActiveSupport::TestCase
       assert_equal user.id, linked.id
       assert_equal "google_oauth2", linked.provider
       assert_equal "google-456", linked.uid
+      assert linked.authenticate("Test#Pass9!")
+    end
+  end
+
+  test "from_omniauth links existing user when stored email casing differs" do
+    user = User.create!(valid_attributes(email_address: "legacy@example.com"))
+    user.update_column(:email_address, "Legacy@Example.com")
+
+    auth = OmniAuth::AuthHash.new(
+      provider: "google_oauth2",
+      uid: "google-legacy",
+      info: { email: "legacy@example.com", name: "Legacy User" }
+    )
+
+    assert_no_difference("User.count") do
+      linked = User.from_omniauth(auth)
+      assert_equal user.id, linked.id
+      assert_equal "legacy@example.com", linked.email_address
+    end
+  end
+
+  test "from_omniauth merges duplicate accounts that share the same email" do
+    password_user = User.create!(valid_attributes(email_address: "dup@example.com"))
+    password_user.update_column(:email_address, "Dup@Example.com")
+    password_user.products.create!(name: "Password product", category: "Books")
+
+    oauth_user = User.create!(
+      email_address: "dup.oauth@example.com",
+      password: "Oauth#Pass9!",
+      password_confirmation: "Oauth#Pass9!",
+      provider: "google_oauth2",
+      uid: "google-dup"
+    )
+    oauth_user.update_column(:email_address, "dup@example.com")
+    oauth_user.products.create!(name: "OAuth product", category: "Books")
+
+    auth = OmniAuth::AuthHash.new(
+      provider: "google_oauth2",
+      uid: "google-dup",
+      info: { email: "dup@example.com", name: "Merged User" }
+    )
+
+    assert_difference("User.count", -1) do
+      merged = User.from_omniauth(auth)
+
+      assert_equal password_user.id, merged.id
+      assert_equal "google_oauth2", merged.provider
+      assert_equal "google-dup", merged.uid
+      assert_equal 2, merged.products.count
+      assert_includes merged.products.pluck(:name), "OAuth product"
+      assert_includes merged.products.pluck(:name), "Password product"
+      assert_nil User.find_by(id: oauth_user.id)
     end
   end
 
