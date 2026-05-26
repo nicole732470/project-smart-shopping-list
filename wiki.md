@@ -17,20 +17,30 @@ Object-oriented design and user flow sketches:
 
 Demo account: `demo@example.com` / `TrackSave!123` (see [Seed accounts](../README.md#seed-accounts))
 
+**Supported retailers:** open [`/supported`](https://smart-shoppinglist-6ae31171e85c.herokuapp.com/supported) on the deployed app (16 tested seed-catalog sites including Lululemon; full matrix in [`supported_retailers_helper.rb`](../app/helpers/supported_retailers_helper.rb)).
+
 ## Tech stack
 
 - **Framework:** Ruby on Rails 8.1
 - **Database:** PostgreSQL
 - **Frontend:** Bootstrap 5 + ERB views
-- **Auth:** Rails 8 built-in authentication (session-based, bcrypt password hashing)
+- **Auth:** Rails 8 session auth (bcrypt) + **Google OAuth** (OmniAuth)
+- **Email:** Action Mailer + **SendGrid SMTP** for price-drop alerts
+- **AI:** **OpenRouter** / OpenAI for Ask AI, DealAdvisor, DealPicker (heuristic fallback)
+- **Charts:** Chartkick price history on product show
+- **Pagination:** Pagy on products and price records indexes
 - **Hosting:** Heroku
-- **CI:** GitHub Actions (Brakeman, Bundler-Audit, Rails test suite)
+- **CI:** GitHub Actions (RuboCop, Brakeman, Bundler-Audit, full test suite, seed smoke)
+- **Scheduled tasks:** GitHub Actions cron → `/admin/refresh_prices` webhook
 
 ## Domain model
 
-- **User** — owns a list of products; authenticates with email + password
-- **Product** — an item the user is tracking (name, category, description). Scoped to its owning user.
-- **PriceRecord** — a single observed price for a product at a given store (price, store name, URL, date observed, notes). Belongs to a product.
+- **User** — owns a list of products; authenticates with email + password or Google OAuth
+- **Product** — an item the user is tracking (name, category, description, optional
+  `source_url`, `target_price`, `auto_refresh`). Scoped to its owning user.
+- **PriceRecord** — a single observed price for a product at a given store (price,
+  store name, URL, date observed, notes). Belongs to a product.
+- **PriceRefreshRun** — one nightly or manual refresh batch (counts, duration, failures).
 
 ```
 User 1 ── * Product 1 ── * PriceRecord
@@ -38,17 +48,23 @@ User 1 ── * Product 1 ── * PriceRecord
 
 Users only ever see and act on their own products; attempting to access another user's product returns 404.
 
-## MVP (current scope)
+## MVP + Milestone 3 (shipped)
 
-- [x] User sign up / sign in / sign out
+- [x] User sign up / sign in / sign out (email + **Google OAuth**)
 - [x] CRUD on products, scoped per user
 - [x] CRUD on price records attached to a product
-- [x] Seeded demo data (20 products, 60 price records)
-- [x] Bootstrap-based responsive UI
+- [x] Seeded demo + load-test data (57 real PDP URLs, Pagy stress account)
+- [x] Bootstrap-based responsive UI + **Supported Sites** page (`/supported`)
 - [x] Deployed on Heroku
-- [x] Automated tests running on GitHub Actions
-- [x] Daily automatic price refresh (GitHub Actions cron → webhook)
-- [x] Target price + in-app price-drop alerts (banner + card chip, with 24h cooldown)
+- [x] Automated tests + **`bin/push-check`** local CI gate on GitHub Actions
+- [x] Daily automatic price refresh (GitHub Actions cron → webhook → async job)
+- [x] Target price + in-app price-drop alerts (banner + card chip, 24h cooldown)
+- [x] **Email** price-drop alerts (SendGrid SMTP)
+- [x] **Ask AI** watchlist assistant (OpenRouter + heuristic fallback)
+- [x] **DealAdvisor** + **Budget Planner** / **DealPicker** recommendations
+- [x] **Chartkick** price-history charts + Up/Down/Stable trend badges
+- [x] Multi-layer scraper (JSON-LD → OG meta → microdata) + Amazon adapter
+- [x] **`auto_refresh`** toggle for manual-only products
 
 ## Similar products and references
 
@@ -61,13 +77,15 @@ These tools solve overlapping problems and are useful for comparison and inspira
 
 ## Features beyond MVP (planned / ideas)
 
-- **Email delivery for price-drop alerts.** ✅ Wired via `MailerSettings` + SMTP (SendGrid on Heroku). Set `SMTP_ADDRESS`, `SMTP_PASSWORD`, `MAILER_FROM`, and `APP_URL`. Without SMTP, in-app banners still work.
-- **"Resolved" / purchased state.** A toggle on each product to mark "bought" or "no longer watching," which hides it from the main grid.
-- **Product images.** Either an uploaded image via Active Storage or a URL-scraped thumbnail.
-- **Automatic price scraping.** Pull current prices from supported retailers (Amazon, Target, etc.) instead of requiring manual entry.
-- **Price-history charts.** Visualize how a product's price has moved over time.
+- **Email delivery for price-drop alerts.** ✅ SendGrid on Heroku (`MailerSettings`).
+- **Automatic price scraping.** ✅ Adapter registry + JSON-LD/OG/microdata fallback;
+  see [`/supported`](../config/routes.rb) and [`docs/scrapers.md`](../docs/scrapers.md).
+- **Price-history charts.** ✅ Chartkick on product show with accessible text summary.
+- **Import from URL.** ✅ Paste URL on create; manual fallback when scrape fails.
+- **"Resolved" / purchased state.** A toggle on each product to mark "bought" or
+  "no longer watching," which hides it from the main grid.
+- **Product images.** Scraped thumbnail URL on create; optional manual URL.
 - **Shared wishlists.** Share a list of watched items with friends/family for gift ideas.
-- **Import from URL.** Paste any product URL and auto-fill the form (name, image, initial price).
 
 ## Visual assets
 

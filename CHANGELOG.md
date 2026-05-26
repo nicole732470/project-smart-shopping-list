@@ -7,50 +7,96 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [v1.2.0] — 2026-05-27 — Milestone 3 (notifications, AI, scraping, polish)
+
+Third milestone release. Themes: outbound **email** alerts, **scheduled**
+refresh at scale with observability, **AI** shopping assistant + deal curation,
+broader **retailer** coverage, **Google OAuth** account linking, and CI/deploy
+hardening.
+
+Deployed at <https://smart-shoppinglist-6ae31171e85c.herokuapp.com/>.
+
 ### Added
-- **Price-drop email delivery (M3).** `MailerSettings` configures SendGrid/SMTP
+- **Price-drop email delivery.** `MailerSettings` configures SendGrid/SMTP
   from ENV; `PriceAlertMailer` sends HTML + text when target hit or history low.
   `bin/rails mailer:smoke_test` for production verification. In-app alerts
   unchanged when SMTP is unset.
 - **Manual full-cycle refresh.** GitHub Actions *Run workflow* sends
   `X-Refresh-Mode: full-cycle`; `RefreshPricesJob` runs batch after batch
   immediately until every refreshable product is updated (one click, not 24).
-- **`Product.refreshable` scope.** Alias of `scrapeable` — nightly and manual
-  refresh include the pagination load-test catalog (~1,265 PDPs on prod), not
-  just team accounts.
+- **`Product.refreshable` scope.** `scrapeable` rows with `auto_refresh: true`
+  — nightly and manual refresh include the pagination load-test catalog (~1,265
+  PDPs on prod), while manual-only trackers are excluded.
+- **`products.auto_refresh` flag.** Manual product entry sets `auto_refresh:
+  false`; editable on the product form; cron skips these rows; stale fetch
+  errors are cleared when auto refresh is turned off.
 - **`price_refresh_runs.batches_run`** column for multi-batch manual runs.
 - **Refresh batch observability.** Each cron/manual refresh creates a
   `price_refresh_runs` row; GitHub Actions polls `GET /admin/refresh_runs/:id`
-  and writes attempted/succeeded/failed counts, duration, and failure details
-  to the run **Summary** tab.
-- **Real PDP seed catalog.** [`db/seeds/real_product_catalog.rb`](db/seeds/real_product_catalog.rb)
-  (49 retailer product URLs) replaces `example.com` placeholders and `/search?`
-  links in `db/seeds.rb`. Production-safe
+  and writes attempted/succeeded/failed counts, duration, failure breakdown,
+  and samples to the run **Summary** tab (JSON artifact on failure reports).
+- **Real PDP seed catalog (57 URLs, 16 retailers).**
+  [`db/seeds/real_product_catalog.rb`](db/seeds/real_product_catalog.rb)
+  replaces `example.com` placeholders and `/search?` links. Added Costco,
+  Home Depot, Lowe's, B&H Photo, Etsy, IKEA, Macy's, and REI. Production-safe
   `paginationtest:reseed_real_urls` rake task updates only the Pagy stress-test
   account on Heroku.
+- **Scraper fallback layers.** Default `JsonLdAdapter` tries schema.org JSON-LD,
+  then Open Graph / `product:price:*` meta tags, then HTML microdata — one code
+  path covers more Shopify and DTC sites without per-site adapters.
+- **Supported Sites page** at [`/supported`](config/routes.rb) — nav tab +
+  [`SupportedRetailersHelper`](app/helpers/supported_retailers_helper.rb) lists
+  tested seed-catalog retailers (Lululemon highlighted), expected JSON-LD sites,
+  manual-entry stores (Target, eBay), and known cloud-IP blockers.
+- **Ask AI shopping assistant** (`/ask`) — natural-language questions over the
+  user's watchlist via **OpenRouter** (`AiAssistant`), with keyword heuristic
+  fallback and source badge in the UI.
+- **AI deal curation.** `DealAdvisor` on product show (buy/wait, 6h cache) and
+  `DealPicker` panel on Budget Planner; OpenRouter/OpenAI when configured,
+  local heuristics otherwise.
+- **Google OAuth sign-in** (`omniauth`, `omniauth-google-oauth2`) plus **account
+  linking by email** and `merge_accounts!` for duplicate rows; safe
+  `return_to` validation after OAuth so inaccessible product URLs do not 404
+  post-login.
+- **`bin/push-check`** — runs `bin/ci` locally before push (RuboCop, Brakeman,
+  tests, seed smoke).
 
 ### Changed
-- **Async batched nightly refresh (P0).** `/admin/refresh_prices` returns 202 and
+- **Async batched nightly refresh.** `/admin/refresh_prices` returns 202 and
   enqueues `RefreshPricesJob`; `RefreshSchedule` auto-sizes batches across a
   2-hour UTC window (24 ticks). Heroku 30s HTTP limit no longer applies to the
   scrape work itself.
 - **`Product.scrapeable` scope.** Cron batches skip non-PDP URLs (`example.com`,
   retailer search pages).
-- **`Product.refreshable` + `RefreshSchedule`.** Batch sizing and
-  `PriceFetcher.refresh_batch` use the full scrapeable catalog count (~1,265 on
-  prod including load-test rows).
-- **GitHub Actions refresh workflow** waits for completion (poll up to 40 min for
-  manual full-cycle, 5 min for cron) and writes Summary with batches run.
+- **GitHub Actions refresh workflow** — poll timeout extended (up to ~90 min
+  manual full-cycle); Summary reports batches run and failure categories.
+- **Homepage hero copy** — shorter hint text linking to `/supported` instead of
+  an inline retailer list.
+- **Product index cards** — removed redundant overlay price chips (LOWEST / SAVE);
+  kept Up / Down / Stable trend badge only.
+- **CI / Ruby** — `Gemfile` relaxes to `ruby "~> 4.0.2"` for Homebrew Ruby;
+  workflows pin `.ruby-version`; parallel-test email collisions fixed in seeds.
 
 ### Fixed
-- **Refresh failure reporting.** Runs now store aggregated `failure_summary`
-  (counts by category, host, exact error) plus richer samples with `source_url`,
-  `host`, and `user_email`. GitHub Summary shows breakdown tables and uploads
-  the full JSON report as a workflow artifact.
-- Daily refresh 503 at stress-test scale (1265+ products) by moving work off the
-  synchronous request path.
-- CI tests for advisory-lock overlap, `REFRESH_BATCH_MAX`, and scrapeable-aware
-  `refresh_batch` specs.
+- **Refresh failure reporting** — aggregated `failure_summary` with host,
+  category, and `source_url` samples; GitHub Summary breakdown tables.
+- Daily refresh 503 at stress-test scale by moving work off the synchronous path.
+- Full-cycle refresh infinite loop when scrape batches produce zero successes.
+- CI: advisory-lock overlap test, `REFRESH_BATCH_MAX`, scrapeable-aware
+  `refresh_batch` specs, OAuth merge tests, RuboCop alignment in `user.rb`.
+- `MailerSettings` load order for Heroku asset precompile.
+- Inverted SAVE chip when latest price rose above all-time low (chips later
+  removed entirely — see Changed).
+- Price record edit 500 (form routed to flat `/price_records/:id` on edit).
+
+### Documentation
+- [`docs/scrapers.md`](docs/scrapers.md) — fallback parser layers, 57-URL seed
+  table, link to `/supported`, datacenter IP 403 note.
+- [`README.md`](README.md) — Supported Sites, Ask AI, OAuth, push-check, AI env
+  vars (OpenRouter + OpenAI).
+- [`wiki.md`](wiki.md) — Milestone 3 feature checklist updated.
 
 ## [v1.1.0] — 2026-05-17 — Milestone 2 (UI + auto-scrape + notifications)
 

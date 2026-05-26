@@ -6,7 +6,7 @@ Nicole Li, Andrew Xue, Amie Masih, Rahib Taher
 
 ## MVP
 
-A web app where signed-in users save products they are watching, record prices seen at different stores, and review them from a simple dashboard. The baseline vision is to paste a product link, set a target price, and get notified when the price meets that condition (notifications are a stretch goal beyond the current milestone).
+A web app where signed-in users save products they are watching, record prices seen at different stores, and review them from a simple dashboard. Paste a product link, set a target price, and get in-app plus email notifications when the price hits your target or a new history low.
 
 ## Communication
 
@@ -21,6 +21,7 @@ A web app where signed-in users save products they are watching, record prices s
 - **OO design (Miro):** https://miro.com/app/board/uXjVGjU99U8=/
 - **Scheduling (When2meet):** https://www.when2meet.com/?36156767-PyTqS
 - **Heroku deployment:** https://smart-shoppinglist-6ae31171e85c.herokuapp.com/
+- **Supported retailers (in-app):** `/supported` on the deployed app
 
 ## Local setup
 
@@ -71,6 +72,29 @@ users and their manually added products are left unchanged.
 
 Sign in as any `shopperN@example.com` to exercise Pagy pagination (24 products per
 page on the index). Pagination is provided by [Pagy](https://github.com/ddnexus/pagy).
+
+Before pushing, run the full local CI gate:
+
+```sh
+bin/push-check   # RuboCop, Brakeman, tests, db:seed:replant smoke
+```
+
+## Supported retailers
+
+The app tries to auto-fetch prices from any product detail URL. The in-app
+**Supported Sites** page (`/supported`, also in the main nav) lists:
+
+- **Tested** — 16 retailers in our seed catalog (including **Lululemon** and
+  **Amazon** with dedicated scraping)
+- **Also expected** — additional JSON-LD retailers (Costco, Kohl's, Wayfair, …)
+- **Manual** — Target and eBay (track the link, enter prices by hand)
+- **Limited** — sites that often block cloud/server refreshes
+
+Technical details: [`docs/scrapers.md`](docs/scrapers.md). Retailer data lives in
+[`app/helpers/supported_retailers_helper.rb`](app/helpers/supported_retailers_helper.rb).
+
+The default scraper tries **JSON-LD → Open Graph meta → HTML microdata** before
+giving up (see `JsonLdAdapter`).
 
 ## Automatic daily price refresh
 
@@ -158,23 +182,47 @@ heroku run bin/rails mailer:smoke_test -a smart-shoppinglist
 Mailer previews remain at `/rails/mailers/price_alert_mailer`. See
 [`wiki.md` § Price-drop alerts](wiki.md) for the full pipeline.
 
+## Sign in with Google
+
+Users can sign in with **Google OAuth** (`omniauth-google-oauth2`) in addition to
+email/password. If the Google account email matches an existing user (any casing),
+sessions link to that account; duplicate rows are merged via `User.merge_accounts!`.
+
+## Ask AI
+
+The **Ask AI** page (`/ask`) accepts free-text shopping questions ("anything under
+$100?", "best deals on my watchlist?") and returns up to three product picks from
+the signed-in user's watchlist with short reasoning.
+
+- Powered by **OpenRouter** when `OPENROUTER_API_KEY` is set (same
+  `ENABLE_AI_DEAL_ADVICE` flag as deal recommendations).
+- Falls back to keyword matching when the API is unavailable — the UI shows a
+  source badge (`AI` vs heuristic).
+
 ## AI deal recommendations
 
 Product detail pages include a buy-or-wait recommendation from
-`DealAdvisor`. By default it uses a local price-history heuristic so the app
-continues working in development, tests, demos, and production even when no AI
-provider is configured.
+`DealAdvisor`. The **Budget Planner** (`/budgetplanner`) includes an AI
+**DealPicker** panel for top picks under your budget. By default both use local
+price-history heuristics so the app works without API keys.
 
-To enable the OpenAI-backed recommendation path, set:
+To enable the OpenRouter / OpenAI paths, set:
 
 ```sh
 ENABLE_AI_DEAL_ADVICE=true
-OPENAI_API_KEY=...
+OPENROUTER_API_KEY=...          # Ask AI + DealAdvisor/DealPicker (OpenRouter)
+OPENAI_API_KEY=...              # optional OpenAI path for DealAdvisor
 OPENAI_DEAL_ADVISOR_MODEL=gpt-5.4-mini
 ```
 
 If the API request times out, fails, or returns an unusable response, the app
 logs the issue and falls back to the local recommendation.
+
+## Manual-only products (`auto_refresh`)
+
+Products created via **Fill in manually** get `auto_refresh: false` — they are
+saved and alert-eligible but skipped by nightly cron. Toggle **Auto refresh** on
+the edit form to opt back in when a scrapeable URL is present.
 
 ## Ideas captured from early planning
 
