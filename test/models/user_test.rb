@@ -110,7 +110,7 @@ class UserTest < ActiveSupport::TestCase
       provider: "google_oauth2",
       uid: "google-dup"
     )
-    oauth_user.update_column(:email_address, "dup@example.com")
+    oauth_user.update_column(:email_address, "dup@EXAMPLE.com")
     oauth_user.products.create!(name: "OAuth product", category: "Books")
 
     auth = OmniAuth::AuthHash.new(
