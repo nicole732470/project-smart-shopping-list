@@ -223,22 +223,25 @@ class ProductTest < ActiveSupport::TestCase
   end
 
   test "show_refresh_failure? is false when auto_refresh is off" do
+    @product.save!
     @product.update_columns(
       auto_refresh: false,
       last_fetch_error: "HTTP 503"
     )
-    refute @product.show_refresh_failure?
+    refute @product.reload.show_refresh_failure?
   end
 
   test "show_refresh_failure? is true when auto_refresh is on and error present" do
+    @product.save!
     @product.update_columns(
       auto_refresh: true,
       last_fetch_error: "HTTP 503"
     )
-    assert @product.show_refresh_failure?
+    assert @product.reload.show_refresh_failure?
   end
 
   test "clearing auto_refresh clears last_fetch_error on save" do
+    @product.save!
     @product.update_columns(
       source_url: "https://www.amazon.com/dp/B123",
       auto_refresh: true,
