@@ -6,11 +6,9 @@
         <div>
           <div class="pt-eyebrow">Your products</div>
           <h1 class="pt-h1">Products you're watching</h1>
-          <p class="pt-lede">
-            Paste a link from Amazon, Best Buy, Walmart, Apple, Costco,
-            Home Depot, and many other major retailers — we'll log the title,
-            image, and current price, then watch for drops. Target links work
-            with manual prices until auto-fetch is restored.
+          <p class="pt-hero-note">
+            Paste a product link and we'll fetch the price when the site allows it.
+            <%= link_to "See supported sites", supported_retailers_path, class: "pt-inline-link" %>.
           </p>
         </div>
         <aside class="pt-hero-cta">
@@ -219,7 +217,8 @@
           </svg>
         </div>
         <h2>No products yet</h2>
-        <p>Start by pasting a product link from Amazon, Best Buy, Walmart, Apple, Costco, Home Depot, or another supported retailer.</p>
+        <p class="pt-empty-copy">Paste a product link to start tracking.
+          <%= link_to "See supported sites", supported_retailers_path, class: "pt-inline-link" %>.</p>
         <%= link_to new_product_path, class: "pt-btn pt-btn-primary pt-btn-lg" do %>
           <span class="pt-btn-icon">+</span> Add your first product
         <% end %>

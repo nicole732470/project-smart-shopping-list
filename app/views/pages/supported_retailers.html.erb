@@ -1,0 +1,83 @@
+<% content_for :title, "Supported Sites" %>
+<main class="pt-page">
+  <section class="pt-hero pt-hero-tight">
+    <div class="container-xl">
+      <div class="pt-eyebrow">Retailers</div>
+      <h1 class="pt-h1">Supported sites</h1>
+      <p class="pt-hero-note">
+        Paste a product detail page link — we try to fetch the title, image, and price automatically.
+        Most major stores work out of the box; a few need a manual price entry.
+      </p>
+    </div>
+  </section>
+
+  <section class="container-xl pt-content pt-retailers">
+    <div class="pt-retailers-panel">
+      <div class="pt-retailers-panel-head">
+        <div>
+          <h2 class="pt-retailers-title">Auto-fetch</h2>
+          <p class="pt-retailers-lede">These retailers usually work when you paste a product link.</p>
+        </div>
+        <span class="pt-retailers-count"><%= auto_fetch_retailers.size %> sites</span>
+      </div>
+
+      <ul class="pt-retailer-grid">
+        <% auto_fetch_retailers.each do |retailer| %>
+          <li class="pt-retailer-chip">
+            <div class="pt-retailer-chip-top">
+              <span class="pt-retailer-name"><%= retailer.name %></span>
+              <span class="pt-retailer-badge pt-retailer-badge-auto">Auto</span>
+            </div>
+            <span class="pt-retailer-domain"><%= retailer.domain %></span>
+            <span class="pt-retailer-hint"><%= retailer.hint %></span>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+
+    <div class="pt-retailers-duo">
+      <div class="pt-retailers-panel pt-retailers-panel-featured">
+        <div class="pt-retailers-panel-head">
+          <div>
+            <h2 class="pt-retailers-title">Amazon</h2>
+            <p class="pt-retailers-lede">Uses a dedicated scraper for Amazon’s layout and pricing markup.</p>
+          </div>
+          <span class="pt-retailer-badge pt-retailer-badge-amazon">Dedicated</span>
+        </div>
+        <p class="pt-retailers-feature-copy">
+          Any Amazon product URL with an ASIN (<span class="pt-mono">/dp/…</span> or
+          <span class="pt-mono">/gp/product/…</span>) is supported across regional domains.
+        </p>
+      </div>
+
+      <div class="pt-retailers-panel pt-retailers-panel-muted">
+        <div class="pt-retailers-panel-head">
+          <div>
+            <h2 class="pt-retailers-title">Target</h2>
+            <p class="pt-retailers-lede">Track the product, enter prices yourself for now.</p>
+          </div>
+          <span class="pt-retailer-badge pt-retailer-badge-manual">Manual</span>
+        </div>
+        <p class="pt-retailers-feature-copy">
+          Target no longer puts prices in the page HTML we receive. You can still save the link,
+          name, and image — then log prices with the manual entry form.
+        </p>
+      </div>
+    </div>
+
+    <div class="pt-retailers-footnote">
+      <p>
+        <strong>Other stores:</strong> many Shopify and smaller shops work too — we read JSON-LD,
+        Open Graph tags, and microdata before giving up. Nightly refresh runs from the cloud;
+        some sites may block server requests even when a link works from your browser.
+      </p>
+      <% if authenticated? %>
+        <%= link_to new_product_path, class: "pt-btn pt-btn-primary" do %>
+          <span class="pt-btn-icon">+</span> Add a product
+        <% end %>
+      <% else %>
+        <%= link_to "Create a free account", new_registration_path, class: "pt-btn pt-btn-primary" %>
+      <% end %>
+    </div>
+  </section>
+</main>

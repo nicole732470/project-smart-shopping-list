@@ -4,4 +4,5 @@ class PagesController < ApplicationController
   def about; end
   def privacy; end
   def terms; end
+  def supported_retailers; end
 end

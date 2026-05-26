@@ -8,13 +8,10 @@
     <div class="container-xl">
       <div class="pt-eyebrow">About</div>
       <h1 class="pt-h1">About PriceTracker</h1>
-      <p class="pt-lede">
+      <p class="pt-hero-note">
         PriceTracker is a class project for CS 397 (Software Studio, Spring 2026)
-        at Northwestern. It lets shoppers paste a product link from supported
-        retailers — Amazon, Best Buy, Walmart, Apple, Newegg, Nike, Lululemon,
-        Costco, Home Depot, Lowe's, B&amp;H Photo, Etsy, IKEA, Macy's, REI,
-        and others — and watches the price over time so you know when something
-        drops. Target product pages can be tracked with manual price entry.
+        at Northwestern. Paste a product link and we'll watch the price over time.
+        <%= link_to "See supported sites", supported_retailers_path, class: "pt-inline-link" %>.
       </p>
     </div>
   </section>

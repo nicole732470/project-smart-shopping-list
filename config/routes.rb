@@ -18,6 +18,7 @@ Rails.application.routes.draw do
   get "about",   to: "pages#about",   as: :about
   get "privacy", to: "pages#privacy", as: :privacy
   get "terms",   to: "pages#terms",   as: :terms
+  get "supported", to: "pages#supported_retailers", as: :supported_retailers
 
   # Webhook hit by .github/workflows/refresh-prices.yml on a daily cron.
   # Auth is by shared secret (X-Admin-Token header), not by cookie session.
