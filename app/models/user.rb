@@ -68,14 +68,12 @@ class User < ApplicationRecord
     email_matches = accounts_for_email(email).to_a
     related_users = (email_matches + [ oauth_user ].compact).uniq(&:id)
 
-    user = case related_users.size
-           when 0
-             new(email_address: email)
-           when 1
-             related_users.first
-           else
-             merge_accounts!(related_users)
-    end
+    user =
+      case related_users.size
+      when 0 then new(email_address: email)
+      when 1 then related_users.first
+      else merge_accounts!(related_users)
+      end
 
     user.provider = provider
     user.uid = uid

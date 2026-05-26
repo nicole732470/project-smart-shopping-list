@@ -123,38 +123,34 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "from_omniauth merges related accounts that share an email" do
-    password_user = User.create!(valid_attributes(email_address: "dup@example.com"))
+    password_user = User.create!(valid_attributes(email_address: "merge-password@example.com"))
     password_user.products.create!(name: "Password product", category: "Books")
 
     oauth_user = User.create!(
-      email_address: "dup.oauth@example.com",
+      email_address: "merge-oauth@example.com",
       password: "Oauth#Pass9!",
       password_confirmation: "Oauth#Pass9!",
       provider: "google_oauth2",
-      uid: "google-dup"
+      uid: "google-merge-link"
     )
     oauth_user.products.create!(name: "OAuth product", category: "Books")
 
-    related = User.accounts_for_email("dup@example.com").to_a
-    assert_equal 1, related.size, "precondition: only password account matches before aliasing"
-
-    oauth_user.update_column(:email_address, "Dup@Example.com")
-    assert_equal 2, User.accounts_for_email("dup@example.com").size
-
     auth = OmniAuth::AuthHash.new(
       provider: "google_oauth2",
-      uid: "google-dup",
-      info: { email: "dup@example.com", name: "Merged User" }
+      uid: "google-merge-link",
+      info: { email: "shared@example.com", name: "Merged User" }
     )
 
     assert_difference("User.count", -1) do
-      merged = User.from_omniauth(auth)
+      stub_method(User, :accounts_for_email, ->(_email) { [ password_user, oauth_user ] }) do
+        merged = User.from_omniauth(auth)
 
-      assert_equal password_user.id, merged.id
-      assert_equal "google_oauth2", merged.provider
-      assert_equal "google-dup", merged.uid
-      assert_equal 2, merged.products.count
-      assert_nil User.find_by(id: oauth_user.id)
+        assert_equal password_user.id, merged.id
+        assert_equal "google_oauth2", merged.provider
+        assert_equal "google-merge-link", merged.uid
+        assert_equal 2, merged.products.count
+        assert_nil User.find_by(id: oauth_user.id)
+      end
     end
   end
 

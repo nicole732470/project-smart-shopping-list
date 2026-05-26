@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Run the same checks as GitHub CI before you push.
+# Usage: bin/push-check
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+if ! ruby -v | grep -Eq 'ruby 4\.0\.[0-9]+'; then
+  echo "Ruby 4.0.x required (.ruby-version says $(cat .ruby-version)). Got: $(ruby -v)"
+  echo "Install with: brew install ruby   # or rbenv install \$(cat .ruby-version)"
+  exit 1
+fi
+
+exec bin/ci
