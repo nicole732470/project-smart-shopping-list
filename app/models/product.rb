@@ -87,6 +87,30 @@ class Product < ApplicationRecord
       price_records.order(recorded_at: :desc).first&.store_name
     end
 
+    def first_tracked_price
+      price_records.order(recorded_at: :asc).first&.price
+    end
+
+    def at_lowest_price?
+      latest_price.present? && lowest_price.present? && latest_price.to_f <= lowest_price.to_f
+    end
+
+    # Positive when the latest price is below the first observation.
+    def savings_vs_first_tracked
+      return nil unless latest_price && first_tracked_price
+
+      diff = first_tracked_price.to_f - latest_price.to_f
+      diff.positive? ? diff.round(2) : nil
+    end
+
+    # Positive when the latest price is above the all-time low.
+    def amount_above_lowest
+      return nil unless latest_price && lowest_price
+
+      diff = latest_price.to_f - lowest_price.to_f
+      diff.positive? ? diff.round(2) : nil
+    end
+
     # Calculate price trend based on latest price vs historical average.
     # Returns :up (price increased), :down (price decreased), :stable (relatively unchanged), or nil
     def price_trend

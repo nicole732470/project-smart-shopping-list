@@ -76,6 +76,26 @@ class ProductTest < ActiveSupport::TestCase
     assert_equal :stable, @product.price_trend
   end
 
+  test "amount_above_lowest is positive when latest price exceeds the all-time low" do
+    @product.save!
+    @product.price_records.create!(price: 19.99, store_name: "Store", recorded_at: 2.days.ago)
+    @product.price_records.create!(price: 24.99, store_name: "Store", recorded_at: 1.day.ago)
+
+    assert_in_delta 5.0, @product.amount_above_lowest, 0.001
+    assert_nil @product.savings_vs_first_tracked
+    refute @product.at_lowest_price?
+  end
+
+  test "savings_vs_first_tracked is positive when latest price dropped since tracking started" do
+    @product.save!
+    @product.price_records.create!(price: 24.99, store_name: "Store", recorded_at: 2.days.ago)
+    @product.price_records.create!(price: 19.99, store_name: "Store", recorded_at: 1.day.ago)
+
+    assert_in_delta 5.0, @product.savings_vs_first_tracked, 0.001
+    assert @product.at_lowest_price?
+    assert_nil @product.amount_above_lowest
+  end
+
   test "price_trend_emoji returns correct emoji for trend" do
     @product.save!
     @product.price_records.create!(price: 100, store_name: "Amazon", recorded_at: 2.days.ago)

@@ -126,10 +126,20 @@
                   <span><%= trend_label %></span>
                 </span>
               <% end %>
-              <% if latest && lowest && latest > lowest %>
+              <% if product.at_lowest_price? %>
+                <div class="pt-card-savings-chip">
+                  <span class="pt-card-savings-label">LOWEST</span>
+                  <span class="pt-card-savings-num">$<%= sprintf("%.2f", latest) %></span>
+                </div>
+              <% elsif (save_amount = product.savings_vs_first_tracked) %>
                 <div class="pt-card-savings-chip">
                   <span class="pt-card-savings-label">SAVE</span>
-                  <span class="pt-card-savings-num">$<%= sprintf("%.2f", latest - lowest) %></span>
+                  <span class="pt-card-savings-num">$<%= sprintf("%.2f", save_amount) %></span>
+                </div>
+              <% elsif (above_low = product.amount_above_lowest) %>
+                <div class="pt-card-price-chip pt-card-price-chip-warn">
+                  <span class="pt-card-savings-label">VS LOW</span>
+                  <span class="pt-card-savings-num">+$<%= sprintf("%.2f", above_low) %></span>
                 </div>
               <% end %>
             <% end %>

@@ -500,6 +500,16 @@ body {
   font-feature-settings: "tnum","zero";
   letter-spacing: -0.01em;
 }
+.pt-card-price-chip-warn {
+  position: absolute; left: 12px; bottom: 12px;
+  display: inline-flex; align-items: baseline; gap: 6px;
+  padding: 6px 10px;
+  background: #fff3e6;
+  color: var(--orange);
+  border-radius: 8px;
+  font-weight: 700;
+  box-shadow: 0 4px 14px -4px rgba(15,23,42,0.18);
+}
 .pt-card-body {
   padding: 18px 20px 16px;
   flex: 1;
